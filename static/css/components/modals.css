@@ -1,0 +1,128 @@
+/* ── Modal Overlay ── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: var(--z-modal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+  opacity: 0;
+  transition: opacity var(--duration-normal) var(--ease-standard);
+}
+
+.modal-overlay.modal-open {
+  opacity: 1;
+}
+
+/* ── Modal Box ── */
+.modal {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-modal);
+  width: 90vw;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow-4);
+  transform: scale(0.94) translateY(8px);
+  opacity: 0;
+  transition: transform var(--duration-normal) var(--ease-enter),
+              opacity var(--duration-normal) var(--ease-enter);
+  position: relative;
+}
+
+.modal-overlay.modal-open .modal {
+  transform: scale(1) translateY(0);
+  opacity: 1;
+}
+
+/* ── Modal Parts ── */
+.modal-header {
+  padding: var(--space-5) var(--space-6);
+  border-bottom: 1px solid var(--border-default);
+}
+
+.modal-body { padding: var(--space-6); }
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-6);
+  border-top: 1px solid var(--border-default);
+}
+
+/* ── Close Button ── */
+.modal-close {
+  position: absolute;
+  top: var(--space-4);
+  right: var(--space-4);
+  background: none;
+  border: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  padding: var(--space-1);
+  border-radius: var(--radius-button);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color var(--duration-fast), background var(--duration-fast);
+  z-index: 1;
+}
+.modal-close:hover { color: var(--text-primary); background: var(--bg-hover); }
+.modal-close svg { width: 20px; height: 20px; }
+
+/* ── Body scroll lock when modal open ── */
+body.modal-is-open { overflow: hidden; }
+
+/* ── Detail Modal (Lightbox) Layout ── */
+.detail-modal {
+  display: flex !important;
+  width: 90vw;
+  height: 90vh;
+  max-width: 1400px;
+  padding: 0;
+  overflow: hidden;
+}
+
+.detail-modal .preview-area {
+  flex: 1;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.detail-modal .metadata-sidebar {
+  width: 320px;
+  background: var(--bg-surface);
+  border-left: 1px solid var(--border-default);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.meta-section { padding-bottom: var(--space-4); border-bottom: 1px solid var(--border-default); }
+.meta-section:last-child { border-bottom: none; }
+
+/* ── Backdrop click area ── */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: var(--z-modal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--duration-normal) var(--ease-standard),
+              visibility var(--duration-normal) var(--ease-standard);
+}
+.modal-backdrop.open { opacity: 1; visibility: visible; }
+.modal-backdrop.open .modal { transform: scale(1) translateY(0); opacity: 1; }

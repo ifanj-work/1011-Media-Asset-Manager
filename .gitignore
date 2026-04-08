@@ -1,0 +1,36 @@
+# Environment & Secrets
+.env
+credentials.json
+token.json
+
+# Temporary/Intermediate files
+.tmp/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+venv/
+.venv/
+
+# Node (if applicable)
+node_modules/
+.next/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Project Specific
+photo_catalog.db
+thumbs/
+*.log

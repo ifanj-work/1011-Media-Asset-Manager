@@ -1,0 +1,117 @@
+/* ── Tag Pills ── */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  line-height: 1.2;
+  white-space: nowrap;
+  cursor: default;
+}
+
+.tag-event  { background: rgba(99,102,241,0.15);  color: #818CF8; }
+.tag-team   { background: rgba(236,72,153,0.15);   color: #F472B6; }
+.tag-player { background: rgba(139,92,246,0.15);   color: #A78BFA; }
+.tag-league { background: rgba(245,158,11,0.15);   color: #FBBF24; }
+.tag-year   { background: rgba(14,165,233,0.15);   color: #38BDF8; }
+.tag-custom { background: rgba(113,113,122,0.15);  color: var(--text-secondary); }
+
+/* Inlined remove button inside a tag pill */
+.tag-remove-btn {
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  margin-left: 2px;
+  opacity: 0.6;
+  transition: opacity var(--duration-fast);
+  display: inline-flex;
+  align-items: center;
+  padding: 0;
+  line-height: 1;
+}
+.tag-remove-btn:hover { opacity: 1; }
+
+/* ── TagInput Component Root ── */
+.tag-input-root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/* Pills row */
+.tag-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  min-height: 24px;
+}
+
+/* Input wrapper for positioning the dropdown */
+.tag-input-wrapper {
+  position: relative;
+}
+
+/* ── Tag Autocomplete Dropdown ── */
+.tag-autocomplete {
+  position: absolute;
+  left: 0; right: 0;
+  top: calc(100% + 4px);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-button);
+  box-shadow: var(--shadow-2);
+  z-index: var(--z-dropdown);
+  max-height: 200px;
+  overflow-y: auto;
+  list-style: none;
+  padding: 4px 0;
+  margin: 0;
+}
+
+.tag-autocomplete-item {
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background var(--duration-fast);
+  outline: none;
+}
+
+.tag-autocomplete-item:hover,
+.tag-autocomplete-item:focus {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+/* ── Legacy Wrap Style (used in older templates) ── */
+.tag-input-wrap {
+  display: flex; flex-wrap: wrap; gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-button);
+  min-height: 40px; align-items: center; cursor: text;
+  transition: border-color var(--duration-fast), box-shadow var(--duration-fast);
+}
+.tag-input-wrap:focus-within {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px var(--color-accent-subtle);
+}
+.tag-input-field {
+  flex: 1; min-width: 100px; border: none;
+  background: transparent; color: var(--text-primary);
+  font-size: var(--text-sm); outline: none;
+}
+.tag-input-field::placeholder { color: var(--text-tertiary); }
+
+/* ── Sidebar category link active state ── */
+[data-category-filter].active {
+  background: var(--bg-hover) !important;
+  color: var(--text-primary) !important;
+  font-weight: 500;
+}

@@ -1,0 +1,265 @@
+{% extends "layout.html" %}
+
+{% block title %}Manage Tags | 1011 Media Asset Manager{% endblock %}
+{% block page_title %}Tag Management{% endblock %}
+
+{% block content %}
+<div class="tags-container" style="max-width: 1200px; margin: 0 auto;">
+    
+    <!-- Header -->
+    <div class="page-header" style="margin-bottom: var(--space-6);">
+        <div style="flex: 1;">
+            <p class="text-secondary" style="margin-top: var(--space-1);">Organize and categorize your library taxonomy.</p>
+        </div>
+        <div style="display: flex; gap: var(--space-3);">
+            <button id="merge-tags-btn" class="btn btn-secondary"><i data-lucide="merge"></i> Merge Tags</button>
+            <button id="add-tag-btn" class="btn btn-primary"><i data-lucide="plus"></i> Add New Tag</button>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div style="display: grid; grid-template-columns: 240px 1fr; gap: var(--space-8);">
+        
+        <!-- Sidebar -->
+        <div class="tags-sidebar" style="position: sticky; top: 100px;">
+            <h3 class="font-inter text-secondary" style="font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: var(--space-3);">Categories</h3>
+            <ul style="display: flex; flex-direction: column; gap: var(--space-1);">
+                <li>
+                    <a href="#" data-category-filter="all" class="active" style="display: flex; justify-content: space-between; padding: var(--space-2) var(--space-3); border-radius: var(--radius-button); background: var(--bg-hover); color: var(--text-primary); font-weight: 500;">
+                        <span>All Tags</span><span class="text-tertiary">342</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" data-category-filter="event" class="text-secondary" style="display: flex; justify-content: space-between; padding: var(--space-2) var(--space-3); border-radius: var(--radius-button); transition: background var(--duration-fast);">
+                        <span style="display: flex; align-items: center; gap: 8px;"><div style="width:8px;height:8px;border-radius:50%;background:var(--tag-event);"></div> Events</span>
+                        <span class="text-tertiary">45</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" data-category-filter="team" class="text-secondary" style="display: flex; justify-content: space-between; padding: var(--space-2) var(--space-3); border-radius: var(--radius-button); transition: background var(--duration-fast);">
+                        <span style="display: flex; align-items: center; gap: 8px;"><div style="width:8px;height:8px;border-radius:50%;background:var(--tag-team);"></div> Teams</span>
+                        <span class="text-tertiary">12</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" data-category-filter="player" class="text-secondary" style="display: flex; justify-content: space-between; padding: var(--space-2) var(--space-3); border-radius: var(--radius-button); transition: background var(--duration-fast);">
+                        <span style="display: flex; align-items: center; gap: 8px;"><div style="width:8px;height:8px;border-radius:50%;background:var(--tag-player);"></div> Players</span>
+                        <span class="text-tertiary">218</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" data-category-filter="year" class="text-secondary" style="display: flex; justify-content: space-between; padding: var(--space-2) var(--space-3); border-radius: var(--radius-button); transition: background var(--duration-fast);">
+                        <span style="display: flex; align-items: center; gap: 8px;"><div style="width:8px;height:8px;border-radius:50%;background:var(--tag-year);"></div> Years</span>
+                        <span class="text-tertiary">15</span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Tag Table -->
+        <div class="tags-main">
+            <div class="card" style="padding: 0;">
+                <div style="padding: var(--space-4); border-bottom: 1px solid var(--border-default); display: flex; justify-content: space-between; align-items: center;">
+                    <input type="text" id="tag-filter-input" class="form-input form-input-sm" placeholder="Filter tags..." style="width: 240px;">
+                    <select class="form-select form-input-sm" style="width: auto;">
+                        <option>Sort by: Most Used</option>
+                        <option>Sort by: A-Z</option>
+                        <option>Sort by: Newest</option>
+                    </select>
+                </div>
+                
+                <table class="data-table" id="tags-table" style="width: 100%;">
+                    <thead>
+                        <tr>
+                            <th style="width: 300px;">Tag Name</th>
+                            <th>Category</th>
+                            <th>Usage Count</th>
+                            <th style="text-align: right;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr data-tag="persija" data-category="team">
+                            <td><span class="tag tag-team">persija</span></td>
+                            <td><span class="text-secondary" style="font-size: var(--text-sm);">Team</span></td>
+                            <td>
+                                <div style="display: flex; align-items: center; gap: var(--space-3);">
+                                    <span class="font-mono text-sm">42,105</span>
+                                    <div style="flex: 1; height: 4px; background: var(--bg-hover); border-radius: 2px; max-width: 100px;">
+                                        <div style="height: 100%; background: var(--color-accent); border-radius: 2px; width: 100%;"></div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td style="text-align: right;">
+                                <button class="btn btn-icon btn-ghost btn-sm" data-edit-tag="persija" aria-label="Edit persija"><i data-lucide="edit-2"></i></button>
+                                <button class="btn btn-icon btn-ghost btn-sm text-error" data-delete-tag="persija" aria-label="Delete persija"><i data-lucide="trash-2"></i></button>
+                            </td>
+                        </tr>
+                        <tr data-tag="match" data-category="event">
+                            <td><span class="tag tag-event">match</span></td>
+                            <td><span class="text-secondary" style="font-size: var(--text-sm);">Event</span></td>
+                            <td>
+                                <div style="display: flex; align-items: center; gap: var(--space-3);">
+                                    <span class="font-mono text-sm">29,540</span>
+                                    <div style="flex: 1; height: 4px; background: var(--bg-hover); border-radius: 2px; max-width: 100px;">
+                                        <div style="height: 100%; background: var(--color-accent); border-radius: 2px; width: 75%;"></div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td style="text-align: right;">
+                                <button class="btn btn-icon btn-ghost btn-sm" data-edit-tag="match" aria-label="Edit match"><i data-lucide="edit-2"></i></button>
+                                <button class="btn btn-icon btn-ghost btn-sm text-error" data-delete-tag="match" aria-label="Delete match"><i data-lucide="trash-2"></i></button>
+                            </td>
+                        </tr>
+                        <tr data-tag="rizky-ridho" data-category="player">
+                            <td><span class="tag tag-player">rizky-ridho</span></td>
+                            <td><span class="text-secondary" style="font-size: var(--text-sm);">Player</span></td>
+                            <td>
+                                <div style="display: flex; align-items: center; gap: var(--space-3);">
+                                    <span class="font-mono text-sm">12,400</span>
+                                    <div style="flex: 1; height: 4px; background: var(--bg-hover); border-radius: 2px; max-width: 100px;">
+                                        <div style="height: 100%; background: var(--color-accent); border-radius: 2px; width: 35%;"></div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td style="text-align: right;">
+                                <button class="btn btn-icon btn-ghost btn-sm" data-edit-tag="rizky-ridho" aria-label="Edit tag"><i data-lucide="edit-2"></i></button>
+                                <button class="btn btn-icon btn-ghost btn-sm text-error" data-delete-tag="rizky-ridho" aria-label="Delete tag"><i data-lucide="trash-2"></i></button>
+                            </td>
+                        </tr>
+                        <tr data-tag="liga-1" data-category="event">
+                            <td><span class="tag tag-event">liga-1</span></td>
+                            <td><span class="text-secondary" style="font-size: var(--text-sm);">Event</span></td>
+                            <td>
+                                <div style="display: flex; align-items: center; gap: var(--space-3);">
+                                    <span class="font-mono text-sm">9,802</span>
+                                    <div style="flex: 1; height: 4px; background: var(--bg-hover); border-radius: 2px; max-width: 100px;">
+                                        <div style="height: 100%; background: var(--color-accent); border-radius: 2px; width: 25%;"></div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td style="text-align: right;">
+                                <button class="btn btn-icon btn-ghost btn-sm" data-edit-tag="liga-1" aria-label="Edit tag"><i data-lucide="edit-2"></i></button>
+                                <button class="btn btn-icon btn-ghost btn-sm text-error" data-delete-tag="liga-1" aria-label="Delete tag"><i data-lucide="trash-2"></i></button>
+                            </td>
+                        </tr>
+                        <tr data-tag="2026" data-category="year">
+                            <td><span class="tag tag-year">2026</span></td>
+                            <td><span class="text-secondary" style="font-size: var(--text-sm);">Year</span></td>
+                            <td>
+                                <div style="display: flex; align-items: center; gap: var(--space-3);">
+                                    <span class="font-mono text-sm">8,204</span>
+                                    <div style="flex: 1; height: 4px; background: var(--bg-hover); border-radius: 2px; max-width: 100px;">
+                                        <div style="height: 100%; background: var(--color-accent); border-radius: 2px; width: 20%;"></div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td style="text-align: right;">
+                                <button class="btn btn-icon btn-ghost btn-sm" data-edit-tag="2026" aria-label="Edit tag"><i data-lucide="edit-2"></i></button>
+                                <button class="btn btn-icon btn-ghost btn-sm text-error" data-delete-tag="2026" aria-label="Delete tag"><i data-lucide="trash-2"></i></button>
+                            </td>
+                        </tr>
+                        <tr data-tag="persib" data-category="team">
+                            <td><span class="tag tag-team">persib</span></td>
+                            <td><span class="text-secondary" style="font-size: var(--text-sm);">Team</span></td>
+                            <td>
+                                <div style="display: flex; align-items: center; gap: var(--space-3);">
+                                    <span class="font-mono text-sm">7,100</span>
+                                    <div style="flex: 1; height: 4px; background: var(--bg-hover); border-radius: 2px; max-width: 100px;">
+                                        <div style="height: 100%; background: var(--color-accent); border-radius: 2px; width: 18%;"></div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td style="text-align: right;">
+                                <button class="btn btn-icon btn-ghost btn-sm" data-edit-tag="persib" aria-label="Edit tag"><i data-lucide="edit-2"></i></button>
+                                <button class="btn btn-icon btn-ghost btn-sm text-error" data-delete-tag="persib" aria-label="Delete tag"><i data-lucide="trash-2"></i></button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <div style="padding: var(--space-4); border-top: 1px solid var(--border-default); display: flex; justify-content: space-between; align-items: center;">
+                    <span id="tag-count-display" class="text-secondary text-sm">Showing 1-6 of 342 tags</span>
+                    <div style="display: flex; gap: var(--space-2);">
+                        <button class="btn btn-secondary btn-sm" disabled>Previous</button>
+                        <button class="btn btn-secondary btn-sm">Next</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<!-- Add Tag Modal                                                                -->
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<div id="add-tag-modal" class="modal-overlay" style="display: none;">
+    <div class="modal" style="width: 420px;">
+        <button class="modal-close" data-modal-close="add-tag-modal" aria-label="Close"><i data-lucide="x"></i></button>
+        <div class="modal-header">
+            <h2 class="font-poppins" style="font-size: var(--text-xl); font-weight: 600;">Add New Tag</h2>
+        </div>
+        <div class="modal-body" style="padding: var(--space-6); display: flex; flex-direction: column; gap: var(--space-4);">
+            <div>
+                <label class="form-label" for="new-tag-name">Tag Name</label>
+                <input id="new-tag-name" type="text" class="form-input" placeholder="e.g. jay-idzes" autocomplete="off">
+                <p class="text-tertiary" style="font-size: var(--text-xs); margin-top: var(--space-1);">Lowercase, hyphens for spaces. Special chars auto-stripped.</p>
+            </div>
+            <div>
+                <label class="form-label" for="new-tag-category">Category</label>
+                <select id="new-tag-category" class="form-select">
+                    <option value="event">Event</option>
+                    <option value="team">Team</option>
+                    <option value="player">Player</option>
+                    <option value="year">Year</option>
+                    <option value="custom">Custom</option>
+                </select>
+            </div>
+        </div>
+        <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: var(--space-3); padding: var(--space-4) var(--space-6); border-top: 1px solid var(--border-default);">
+            <button class="btn btn-secondary" data-modal-close="add-tag-modal">Cancel</button>
+            <button class="btn btn-primary" data-save-tag><i data-lucide="plus"></i> Create Tag</button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<!-- Merge Tags Modal                                                             -->
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<div id="merge-tag-modal" class="modal-overlay" style="display: none;">
+    <div class="modal" style="width: 440px;">
+        <button class="modal-close" data-modal-close="merge-tag-modal" aria-label="Close"><i data-lucide="x"></i></button>
+        <div class="modal-header">
+            <h2 class="font-poppins" style="font-size: var(--text-xl); font-weight: 600;">Merge Tags</h2>
+            <p class="text-secondary" style="font-size: var(--text-sm); margin-top: var(--space-1);">All files tagged with the source tag will get the target tag instead.</p>
+        </div>
+        <div class="modal-body" style="padding: var(--space-6); display: flex; flex-direction: column; gap: var(--space-4);">
+            <div>
+                <label class="form-label">Merge from (source tag)</label>
+                <input type="text" class="form-input" placeholder="e.g. liga1" autocomplete="off">
+            </div>
+            <div style="display: flex; align-items: center; justify-content: center;">
+                <i data-lucide="arrow-down" style="color: var(--text-tertiary);"></i>
+            </div>
+            <div>
+                <label class="form-label">Into (target tag)</label>
+                <input type="text" class="form-input" placeholder="e.g. liga-1" autocomplete="off">
+            </div>
+            <div style="background: var(--color-warning-subtle); border: 1px solid var(--color-warning); border-radius: var(--radius-button); padding: var(--space-3);">
+                <p style="font-size: var(--text-sm); color: var(--color-warning);">⚠️ This will permanently delete the source tag from the vocabulary and re-tag all affected files.</p>
+            </div>
+        </div>
+        <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: var(--space-3); padding: var(--space-4) var(--space-6); border-top: 1px solid var(--border-default);">
+            <button class="btn btn-secondary" data-modal-close="merge-tag-modal">Cancel</button>
+            <button class="btn btn-primary" data-confirm-merge><i data-lucide="merge"></i> Confirm Merge</button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/components/modal.js') }}"></script>
+<script src="{{ url_for('static', filename='js/components/toast.js') }}"></script>
+<script src="{{ url_for('static', filename='js/pages/tags.js') }}"></script>
+{% endblock %}

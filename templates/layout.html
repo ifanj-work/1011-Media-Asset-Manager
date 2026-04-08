@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}1011 Media Asset Manager{% endblock %}</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
+    
+    <!-- Design System CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/design-system.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/layout.css') }}">
+    
+    <!-- Component CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/components/buttons.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/components/cards.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/components/forms.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/components/modals.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/components/tags.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/components/filters.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/components/tables.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/components/toast.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/components/skeleton.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/components/empty-state.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/components/selection-bar.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/components/context-menu.css') }}">
+
+    <!-- Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    {% block head %}{% endblock %}
+</head>
+<body class="dark" data-theme="zinc">
+
+    <!-- Global Layout Wrapper -->
+    <div class="app">
+        
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar" id="app-sidebar">
+            <div class="sidebar-logo">
+                <img src="{{ url_for('static', filename='img/logo-1011.svg') }}" alt="1011 Logo" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'32\' height=\'32\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%23FAFAFA\' stroke-width=\'2\'><rect x=\'3\' y=\'3\' width=\'18\' height=\'18\' rx=\'2\' ry=\'2\'></rect><circle cx=\'8.5\' cy=\'8.5\' r=\'1.5\'></circle><polyline points=\'21 15 16 10 5 21\'></polyline></svg>'">
+                <span class="sidebar-logo-text">1011 Asset Manager</span>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="sidebar-nav-group">
+                    <a href="/search" class="sidebar-nav-item {{ 'active' if request.path == '/search' else '' }}">
+                        <i data-lucide="search"></i>
+                        <span>Library Search</span>
+                    </a>
+                    <a href="/" class="sidebar-nav-item {{ 'active' if request.path == '/' else '' }}">
+                        <i data-lucide="layout-dashboard"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </div>
+
+                <div class="sidebar-nav-group">
+                    <h3 class="sidebar-nav-label font-inter">Manage</h3>
+                    <a href="/tags" class="sidebar-nav-item {{ 'active' if request.path == '/tags' else '' }}">
+                        <i data-lucide="tags"></i>
+                        <span>Tags</span>
+                    </a>
+                    <a href="/collections" class="sidebar-nav-item {{ 'active' if request.path == '/collections' else '' }}">
+                        <i data-lucide="folder-code"></i>
+                        <span>Collections</span>
+                    </a>
+                </div>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <a href="/settings" class="sidebar-nav-item {{ 'active' if request.path == '/settings' else '' }}">
+                    <i data-lucide="settings"></i>
+                    <span>Settings</span>
+                </a>
+                <button class="sidebar-toggle" id="sidebar-toggle" aria-label="Collapse Sidebar">
+                    <i data-lucide="chevrons-left"></i>
+                    <span>Collapse</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main">
+            <!-- Header -->
+            <header class="header">
+                <div class="header-left">
+                    <h1 class="header-title">{% block page_title %}Dashboard{% endblock %}</h1>
+                </div>
+                
+                <div class="header-center">
+                    <!-- Moved search to library page -->
+                </div>
+
+                <div class="header-right">
+                    <button class="btn btn-icon btn-ghost" aria-label="Upload files">
+                        <i data-lucide="upload-cloud"></i>
+                    </button>
+                    <button class="btn btn-icon btn-ghost" aria-label="Notifications">
+                        <i data-lucide="bell"></i>
+                    </button>
+                    <!-- User Avatar Placeholder -->
+                    <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--bg-hover); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600;">
+                        10
+                    </div>
+                </div>
+            </header>
+
+            <!-- Page Content -->
+            <div class="page-content">
+                {% block content %}{% endblock %}
+            </div>
+        </main>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Scripts -->
+    <script>
+        // Initialize Lucide Icons
+        lucide.createIcons();
+        
+        // Basic sidebar toggle logic
+        document.getElementById('sidebar-toggle')?.addEventListener('click', () => {
+            const sidebar = document.getElementById('app-sidebar');
+            sidebar.classList.toggle('collapsed');
+            const icon = sidebar.classList.contains('collapsed') ? 'chevrons-right' : 'chevrons-left';
+            const iconElement = document.querySelector('#sidebar-toggle i');
+            // update icon
+            iconElement.innerHTML = '';
+            lucide.createIcons({
+                name: icon,
+                attrs: {
+                    class: "lucide lucide-" + icon,
+                    "stroke-width": 2
+                },
+                nameAttr: 'data-lucide',
+                root: iconElement.parentNode
+            });
+            iconElement.setAttribute('data-lucide', icon);
+        });
+
+        // Global search focus logic
+        document.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                e.preventDefault();
+                const searchInput = document.getElementById('library-search');
+                if (searchInput) {
+                    searchInput.focus();
+                } else if (window.location.pathname !== '/search') {
+                    window.location.href = '/search';
+                }
+            }
+        });
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

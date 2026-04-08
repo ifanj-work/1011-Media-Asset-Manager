@@ -1,0 +1,224 @@
+{% extends "layout.html" %}
+
+{% block title %}Library Search | 1011 Media Asset Manager{% endblock %}
+{% block page_title %}Asset Library{% endblock %}
+
+{% block content %}
+<div class="search-container" style="display: flex; flex-direction: column; height: 100%;">
+    <!-- Search Input -->
+    <div style="margin-bottom: var(--space-4);">
+        <div class="global-search" style="width: 100%; max-width: none;">
+            <i data-lucide="search" class="global-search-icon"></i>
+            <input type="text" placeholder="Search files, tags, or collections... (Ctrl+K)" class="global-search-input" id="library-search" autocomplete="off" autofocus>
+        </div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="toolbar" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-4); padding: var(--space-2) 0; border-bottom: 1px solid var(--border-default);">
+        <div class="toolbar-left" style="display: flex; gap: var(--space-2); align-items: center;">
+            <div class="filter-group">
+                <button class="filter-chip active" data-filter="all">All</button>
+                <button class="filter-chip" data-filter="images">Images</button>
+                <button class="filter-chip" data-filter="videos">Videos</button>
+                <button class="filter-chip" data-filter="psd">PSD</button>
+            </div>
+            <div style="width: 1px; height: 24px; background: var(--border-default); margin: 0 var(--space-2);"></div>
+            <!-- Date Range Picker -->
+            <div style="position: relative;">
+                <button id="date-range-btn" class="btn btn-secondary btn-sm">
+                    <i data-lucide="calendar"></i> Date Range
+                </button>
+                <div id="date-range-popover" style="display:none; position:absolute; background:var(--bg-elevated); border:1px solid var(--border-default); border-radius:var(--radius-md); padding:var(--space-4); box-shadow:var(--shadow-3); z-index:var(--z-dropdown); top:calc(100% + 4px); left:0; min-width:380px;">
+                    <div style="display:flex; gap:var(--space-3); align-items:flex-end;">
+                        <div>
+                            <label class="form-label" style="font-size:var(--text-xs); margin-bottom:4px;">From</label>
+                            <input type="date" id="date-from-input" class="form-input form-input-sm" style="width:155px;">
+                        </div>
+                        <div>
+                            <label class="form-label" style="font-size:var(--text-xs); margin-bottom:4px;">To</label>
+                            <input type="date" id="date-to-input" class="form-input form-input-sm" style="width:155px;">
+                        </div>
+                        <div style="display:flex; gap:var(--space-2);">
+                            <button id="date-range-apply" class="btn btn-primary btn-sm">Apply</button>
+                            <button id="date-range-clear" class="btn btn-secondary btn-sm">Clear</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="toolbar-right" style="display: flex; gap: var(--space-3); align-items: center;">
+            <span id="result-count" class="text-tertiary font-inter" style="font-size: var(--text-sm);">Loading…</span>
+            
+            <select class="form-select form-input-sm" id="sort-select" style="width: auto;">
+                <option value="newest">Newest First</option>
+                <option value="oldest">Oldest First</option>
+                <option value="name-az">A–Z</option>
+                <option value="name-za">Z–A</option>
+                <option value="size-desc">Largest First</option>
+            </select>
+
+            <div class="view-toggle" style="display: flex; background: var(--bg-elevated); border-radius: var(--radius-md); padding: 2px;">
+                <button class="btn btn-icon btn-sm active" data-view="grid" style="background: var(--bg-hover);" aria-label="Grid view">
+                    <i data-lucide="layout-grid" style="width: 16px; height: 16px;"></i>
+                </button>
+                <button class="btn btn-icon btn-sm btn-ghost" data-view="list" aria-label="List view">
+                    <i data-lucide="list" style="width: 16px; height: 16px;"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Asset Grid - Populated by search.js -->
+    <div class="asset-grid" id="asset-grid" style="align-content: flex-start; overflow-y: auto; padding-right: var(--space-2);">
+        <!-- search.js loadAssets() renders cards here -->
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<!-- Asset Detail Modal                                                          -->
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<div id="detail-modal" class="modal-overlay" style="display: none;">
+    <div class="modal detail-modal" style="display: flex; width: 90vw; height: 90vh; max-width: 1400px; padding: 0; overflow: hidden;">
+        <button class="modal-close" data-modal-close="detail-modal" aria-label="Close">
+            <i data-lucide="x"></i>
+        </button>
+
+        <!-- Image Preview Area -->
+        <div class="preview-area" style="flex: 1; background: #000; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden;">
+            <img id="modal-preview-img" src="" alt=""
+                 style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; display: none;">
+            <i id="modal-preview-icon" data-lucide="image" class="text-tertiary" style="width: 120px; height: 120px; opacity: 0.2;"></i>
+            <button id="modal-prev" class="btn btn-icon btn-ghost" style="position: absolute; left: var(--space-4); color: white; background: rgba(0,0,0,0.5);" aria-label="Previous file">
+                <i data-lucide="chevron-left"></i>
+            </button>
+            <button id="modal-next" class="btn btn-icon btn-ghost" style="position: absolute; right: var(--space-4); color: white; background: rgba(0,0,0,0.5);" aria-label="Next file">
+                <i data-lucide="chevron-right"></i>
+            </button>
+        </div>
+
+        <!-- Metadata Sidebar -->
+        <div class="metadata-sidebar" style="width: 320px; background: var(--bg-surface); padding: var(--space-6); display: flex; flex-direction: column; gap: var(--space-6); border-left: 1px solid var(--border-default); overflow-y: auto;">
+            
+            <div class="meta-section">
+                <h2 id="modal-filename" class="font-poppins" style="font-size: var(--text-lg); font-weight: 600; margin-bottom: var(--space-2); word-break: break-all;">Match_Action_001.jpg</h2>
+                <div class="text-secondary font-inter" style="font-size: var(--text-sm);">
+                    <p id="modal-meta">4.2 MB • 4000×3000 • JPG</p>
+                    <p id="modal-path" style="margin-top: 4px; word-break: break-all; font-size: var(--text-xs); color: var(--text-tertiary);">\\172.16.0.25\data\2026\Match\Match_Action_001.jpg</p>
+                </div>
+            </div>
+
+            <div class="meta-section">
+                <h3 class="font-poppins text-primary" style="font-size: var(--text-sm); font-weight: 600; margin-bottom: var(--space-3); text-transform: uppercase; letter-spacing: 0.05em;">Tags</h3>
+                <!-- Tag input component mounts here -->
+                <div id="modal-tag-input-container"></div>
+            </div>
+
+            <div class="meta-section">
+                <h3 class="font-poppins text-primary" style="font-size: var(--text-sm); font-weight: 600; margin-bottom: var(--space-3); text-transform: uppercase; letter-spacing: 0.05em;">EXIF Data</h3>
+                <table style="width: 100%; border: none;">
+                    <tbody id="modal-exif-body">
+                        <tr>
+                            <td style="color: var(--text-secondary); width: 40%; font-size: var(--text-xs); padding: 4px 0;">Camera</td>
+                            <td style="font-size: var(--text-sm); padding: 4px 0; text-align: right;">Sony A7III</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="meta-actions" style="margin-top: auto; display: flex; flex-direction: column; gap: var(--space-2);">
+                <button id="modal-download-btn" class="btn btn-primary"><i data-lucide="download"></i> Download Original</button>
+                <button id="modal-open-location-btn" class="btn btn-secondary"><i data-lucide="folder-output"></i> Open File Location</button>
+                <button id="modal-add-collection-btn" class="btn btn-secondary"><i data-lucide="folder-plus"></i> Add to Collection</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<!-- Collection Picker Modal                                                      -->
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<div id="collection-picker-modal" class="modal-overlay" style="display: none;">
+    <div class="modal" style="width: 460px; max-height: 85vh; display: flex; flex-direction: column; padding: 0; overflow: hidden;">
+        <button class="modal-close" data-modal-close="collection-picker-modal" aria-label="Close">
+            <i data-lucide="x"></i>
+        </button>
+        <div class="modal-header">
+            <h2 class="font-poppins" style="font-size: var(--text-xl); font-weight: 600;">Add to Collection</h2>
+            <p id="collection-picker-subtitle" class="text-secondary" style="font-size: var(--text-sm); margin-top: var(--space-1);">Select a collection.</p>
+        </div>
+        <div id="collection-picker-list" style="padding: var(--space-2) var(--space-4); overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: var(--space-2); min-height: 160px;">
+            <!-- Populated by JS -->
+        </div>
+        <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center; padding: var(--space-4) var(--space-6); border-top: 1px solid var(--border-default);">
+            <button id="collection-picker-create-new" class="btn btn-secondary btn-sm">
+                <i data-lucide="plus"></i> New Collection
+            </button>
+            <button class="btn btn-ghost" data-modal-close="collection-picker-modal">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<!-- Batch Tag Modal                                                              -->
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<div id="batch-tag-modal" class="modal-overlay" style="display: none;">
+    <div class="modal" style="width: 480px;">
+        <button class="modal-close" data-modal-close="batch-tag-modal" aria-label="Close">
+            <i data-lucide="x"></i>
+        </button>
+        <div class="modal-header">
+            <h2 class="font-poppins" style="font-size: var(--text-xl); font-weight: 600;">Batch Tag</h2>
+            <p class="text-secondary" style="font-size: var(--text-sm); margin-top: var(--space-1);">Apply tags to all selected files.</p>
+        </div>
+        <div class="modal-body" style="padding: var(--space-6);">
+            <label class="form-label">Tags to apply</label>
+            <div id="batch-tag-input-container"></div>
+            <p class="text-tertiary" style="font-size: var(--text-xs); margin-top: var(--space-2);">Press Enter or comma to add a tag. Existing tags on files won't be removed.</p>
+        </div>
+        <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: var(--space-3); padding: var(--space-4) var(--space-6); border-top: 1px solid var(--border-default);">
+            <button class="btn btn-secondary" data-modal-close="batch-tag-modal">Cancel</button>
+            <button class="btn btn-primary" data-batch-apply>
+                <i data-lucide="tag"></i> Apply Tags
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<!-- Selection Bar (fixed bottom)                                                 -->
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<div id="selection-bar" class="selection-bar">
+    <div style="display: flex; align-items: center; gap: var(--space-3);">
+        <button id="sel-clear" class="btn btn-icon" style="color: inherit; background: rgba(0,0,0,0.15);" aria-label="Clear selection">
+            <i data-lucide="x"></i>
+        </button>
+        <span id="sel-count" class="font-poppins" style="font-weight: 600; font-size: var(--text-base);">0 items selected</span>
+    </div>
+    
+    <div style="width: 1px; height: 24px; background: rgba(0,0,0,0.2);"></div>
+    
+    <div style="display: flex; gap: var(--space-2);">
+        <button id="sel-batch-tag" class="btn" style="background: rgba(0,0,0,0.15); color: inherit; border-color: transparent;">
+            <i data-lucide="tag"></i> Batch Tag
+        </button>
+        <button id="sel-batch-collection" class="btn" style="background: rgba(0,0,0,0.15); color: inherit; border-color: transparent;">
+            <i data-lucide="folder-plus"></i> Add to Collection
+        </button>
+        <button id="sel-download" class="btn" style="background: rgba(0,0,0,0.15); color: inherit; border-color: transparent;">
+            <i data-lucide="download"></i> Download
+        </button>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/components/modal.js') }}"></script>
+<script src="{{ url_for('static', filename='js/components/toast.js') }}"></script>
+<script src="{{ url_for('static', filename='js/components/tag-input.js') }}"></script>
+<script src="{{ url_for('static', filename='js/pages/search.js') }}"></script>
+{% endblock %}

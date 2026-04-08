@@ -1,0 +1,78 @@
+{% extends "layout.html" %}
+
+{% block title %}Collections | 1011 Media Asset Manager{% endblock %}
+{% block page_title %}Collections{% endblock %}
+
+{% block content %}
+<div class="collections-container" style="display: flex; flex-direction: column; height: 100%;">
+    
+    <!-- Toolbar -->
+    <div class="toolbar" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-6); padding-bottom: var(--space-4); border-bottom: 1px solid var(--border-default);">
+        <div style="flex: 1;">
+            <p class="text-secondary" style="margin-top: var(--space-1);">Curate and share groups of related media assets.</p>
+        </div>
+        <div class="toolbar-right" style="display: flex; gap: var(--space-3); align-items: center;">
+            <div class="search-input" style="position: relative;">
+                <i data-lucide="search" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: var(--text-tertiary);"></i>
+                <input id="collection-search" type="text" class="form-input form-input-sm" placeholder="Search collections..." style="padding-left: 32px; width: 200px;">
+            </div>
+            <select id="collection-sort" class="form-select form-input-sm" style="width: auto;">
+                <option value="updated">Recently Updated</option>
+                <option value="az">A–Z</option>
+                <option value="items">Most Items</option>
+            </select>
+            <button id="new-collection-btn" class="btn btn-primary"><i data-lucide="plus"></i> New Collection</button>
+        </div>
+    </div>
+
+    <!-- Collections Grid -->
+    <div id="collections-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: var(--space-4); align-content: flex-start; overflow-y: auto; padding-right: var(--space-2);">
+        <!-- Dynamically rendered by collections.js -->
+
+        <!-- Create New Placeholder Card -->
+        <div id="create-collection-card" class="card collection-card"
+             style="padding: 0; cursor: pointer; border-style: dashed; border-color: var(--border-hover); background: transparent; display: flex; align-items: center; justify-content: center; min-height: 280px; transition: border-color var(--duration-fast), background var(--duration-fast);">
+            <div style="text-align: center; color: var(--text-secondary);">
+                <div style="width: 48px; height: 48px; border-radius: 50%; background: var(--bg-elevated); display: inline-flex; align-items: center; justify-content: center; margin-bottom: var(--space-3);">
+                    <i data-lucide="folder-plus"></i>
+                </div>
+                <p class="font-poppins font-medium">Create Collection</p>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<!-- New Collection Modal                                                         -->
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<div id="new-collection-modal" class="modal-overlay" style="display: none;">
+    <div class="modal" style="width: 460px;">
+        <button class="modal-close" data-modal-close="new-collection-modal" aria-label="Close"><i data-lucide="x"></i></button>
+        <div class="modal-header">
+            <h2 class="font-poppins" style="font-size: var(--text-xl); font-weight: 600;">New Collection</h2>
+        </div>
+        <div class="modal-body" style="padding: var(--space-6); display: flex; flex-direction: column; gap: var(--space-4);">
+            <div>
+                <label class="form-label" for="collection-name-input">Collection Name</label>
+                <input id="collection-name-input" type="text" class="form-input" placeholder="e.g. Best of Liga 1 2026" autocomplete="off">
+            </div>
+            <div>
+                <label class="form-label" for="collection-desc-input">Description <span class="text-tertiary">(optional)</span></label>
+                <textarea id="collection-desc-input" class="form-input" rows="3" placeholder="What is this collection about?" style="resize: vertical;"></textarea>
+            </div>
+        </div>
+        <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: var(--space-3); padding: var(--space-4) var(--space-6); border-top: 1px solid var(--border-default);">
+            <button class="btn btn-secondary" data-modal-close="new-collection-modal">Cancel</button>
+            <button class="btn btn-primary" data-save-collection><i data-lucide="folder-plus"></i> Create Collection</button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/components/modal.js') }}"></script>
+<script src="{{ url_for('static', filename='js/components/toast.js') }}"></script>
+<script src="{{ url_for('static', filename='js/pages/collections.js') }}"></script>
+{% endblock %}

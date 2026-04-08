@@ -1,0 +1,21 @@
+/* ── Data Tables ── */
+.data-table { width: 100%; border-collapse: collapse; }
+.data-table th { text-align: left; padding: var(--space-3) var(--space-4); font-size: var(--text-sm); font-weight: 600; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.03em; border-bottom: 1px solid var(--border-default); background: var(--bg-surface); position: sticky; top: 0; z-index: 1; }
+.data-table td { padding: var(--space-3) var(--space-4); font-size: var(--text-base); color: var(--text-primary); border-bottom: 1px solid var(--border-default); }
+.data-table tr { min-height: var(--table-row-height); transition: background var(--duration-fast); }
+.data-table tbody tr:hover { background: var(--bg-elevated); }
+.data-table tbody tr.selected { background: var(--color-accent-subtle); }
+
+/* Sort indicator */
+.data-table th.sortable { cursor: pointer; user-select: none; }
+.data-table th.sortable:hover { color: var(--text-primary); }
+.data-table th .sort-icon { margin-left: var(--space-1); opacity: 0.4; }
+.data-table th.sort-asc .sort-icon, .data-table th.sort-desc .sort-icon { opacity: 1; color: var(--color-accent); }
+
+/* Usage bar */
+.usage-bar { width: 80px; height: 6px; background: var(--bg-elevated); border-radius: var(--radius-pill); overflow: hidden; }
+.usage-bar-fill { height: 100%; background: var(--color-accent); border-radius: var(--radius-pill); transition: width var(--duration-slow); }
+
+/* Table wrapper */
+.table-wrap { background: var(--bg-surface); border: 1px solid var(--border-default); border-radius: var(--radius-card); overflow: hidden; }
+.table-scroll { overflow-x: auto; }

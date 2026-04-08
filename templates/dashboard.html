@@ -1,0 +1,178 @@
+{% extends "layout.html" %}
+
+{% block title %}Dashboard | 1011 Media Asset Manager{% endblock %}
+{% block page_title %}Dashboard Overview{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+
+    <!-- ── Stat Cards ──────────────────────────────────────────────────────── -->
+    <div class="stat-cards">
+        <div class="stat-card">
+            <div class="stat-card-label" style="display:flex;justify-content:space-between;align-items:center;">
+                <span>Total Assets</span>
+                <i data-lucide="image"></i>
+            </div>
+            <div class="stat-card-value font-poppins text-accent">
+                {{ stats.total_files | default(0) | int | format_number }}
+            </div>
+            <div class="stat-card-sub text-secondary">
+                {{ stats.total_size_human | default('—') }} indexed
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-card-label" style="display:flex;justify-content:space-between;align-items:center;">
+                <span>Tagged Assets</span>
+                <i data-lucide="tags"></i>
+            </div>
+            <div class="stat-card-value font-poppins">
+                {{ stats.pct_tagged | default(0) }}%
+            </div>
+            <div class="stat-card-sub"
+                 style="color:{% if stats.pct_tagged|default(0) >= 90 %}var(--color-success){% elif stats.pct_tagged|default(0) >= 70 %}var(--color-warning){% else %}var(--color-error){% endif %};">
+                {{ stats.tagged_files | default(0) }} of {{ stats.total_files | default(0) }} files tagged
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-card-label" style="display:flex;justify-content:space-between;align-items:center;">
+                <span>Collections</span>
+                <i data-lucide="folder-code"></i>
+            </div>
+            <div class="stat-card-value font-poppins">{{ stats.collections | default(0) }}</div>
+            <div class="stat-card-sub text-secondary">Virtual albums</div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-card-label" style="display:flex;justify-content:space-between;align-items:center;">
+                <span>Storage Indexed</span>
+                <i data-lucide="hard-drive"></i>
+            </div>
+            <div class="stat-card-value font-poppins">{{ stats.total_size_human | default('—') }}</div>
+            <div class="stat-card-sub text-secondary">Across all folders</div>
+        </div>
+    </div>
+
+    <!-- ── Main Grid ─────────────────────────────────────────────────────────── -->
+    <div style="display:grid;grid-template-columns:2fr 1fr;gap:var(--space-6);">
+
+        <!-- Left: Recent Additions -->
+        <div>
+            <div class="page-header" style="margin-bottom:var(--space-4);">
+                <h2 class="font-poppins text-lg">Recent Additions</h2>
+                <a href="/search" class="btn btn-ghost btn-sm">View All →</a>
+            </div>
+
+            <div id="dashboard-recent-grid" class="asset-grid" style="grid-template-columns:repeat(auto-fill,minmax(160px,1fr));">
+                <!-- Loaded by dashboard.js -->
+                {% for i in range(6) %}
+                <div class="asset-card">
+                    <div class="asset-card-thumb">
+                        <div class="skeleton-shimmer" style="position:absolute;inset:0;"></div>
+                    </div>
+                    <div class="asset-card-info">
+                        <div class="skeleton-shimmer" style="height:13px;width:75%;border-radius:4px;margin-bottom:6px;"></div>
+                        <div class="skeleton-shimmer" style="height:10px;width:40%;border-radius:4px;"></div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Right Column -->
+        <div style="display:flex;flex-direction:column;gap:var(--space-4);">
+
+            <!-- Tag Status: Tagging Progress -->
+            <div class="card" style="padding:0;">
+                <div style="padding:var(--space-4);border-bottom:1px solid var(--border-default);">
+                    <h3 class="font-poppins text-base">Tagging Progress</h3>
+                </div>
+                <div style="padding:var(--space-4);">
+                    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:var(--space-2);">
+                        <span class="text-secondary text-sm">Files tagged</span>
+                        <span class="font-poppins font-medium" style="color:var(--color-accent);">{{ stats.pct_tagged | default(0) }}%</span>
+                    </div>
+                    <div style="height:8px;background:var(--bg-elevated);border-radius:4px;overflow:hidden;">
+                        <div style="height:100%;width:{{ stats.pct_tagged | default(0) }}%;
+                                    background:{% if stats.pct_tagged|default(0) >= 90 %}var(--color-success){% elif stats.pct_tagged|default(0) >= 70 %}var(--color-accent){% else %}var(--color-warning){% endif %};
+                                    border-radius:4px;transition:width 1s;"></div>
+                    </div>
+                    <p class="text-tertiary" style="font-size:var(--text-xs);margin-top:var(--space-2);">
+                        Target: 90% — {{ [90 - (stats.pct_tagged|default(0)), 0] | max }}% to go
+                    </p>
+                </div>
+            </div>
+
+            <!-- Top Tags -->
+            <div class="card" style="padding:0;flex:1;">
+                <div style="padding:var(--space-4);border-bottom:1px solid var(--border-default);display:flex;justify-content:space-between;align-items:center;">
+                    <h3 class="font-poppins text-base">Top Tags</h3>
+                    <a href="/tags" class="btn btn-ghost btn-sm">Manage →</a>
+                </div>
+                <div>
+                    <table class="data-table" style="width:100%;">
+                        <tbody>
+                            {% for tag in stats.top_tags %}
+                            <tr>
+                                <td style="padding:var(--space-3) var(--space-4);">
+                                    <span class="tag tag-custom">{{ tag.tag }}</span>
+                                </td>
+                                <td style="text-align:right;padding:var(--space-3) var(--space-4);color:var(--text-secondary);font-size:var(--text-sm);">
+                                    {{ tag.count }}
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="2" style="text-align:center;padding:var(--space-6);color:var(--text-tertiary);">
+                                    No tags yet. Start tagging assets!
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Recent Activity -->
+            <div class="card" style="padding:0;">
+                <div style="padding:var(--space-4);border-bottom:1px solid var(--border-default);">
+                    <h3 class="font-poppins text-base">Recent Activity</h3>
+                </div>
+                <div style="padding:var(--space-2) 0;max-height:200px;overflow-y:auto;">
+                    {% for event in activity %}
+                    <div style="display:flex;align-items:flex-start;gap:var(--space-3);padding:var(--space-2) var(--space-4);">
+                        <div style="width:28px;height:28px;border-radius:50%;background:var(--bg-elevated);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;">
+                            {% if 'tag' in event.event_type %}
+                            <i data-lucide="tag" style="width:14px;height:14px;color:var(--color-accent);"></i>
+                            {% elif 'collection' in event.event_type %}
+                            <i data-lucide="folder" style="width:14px;height:14px;color:var(--color-success);"></i>
+                            {% else %}
+                            <i data-lucide="activity" style="width:14px;height:14px;color:var(--text-tertiary);"></i>
+                            {% endif %}
+                        </div>
+                        <div style="flex:1;min-width:0;">
+                            <p style="font-size:var(--text-sm);color:var(--text-primary);">
+                                {{ event.event_type | replace('_', ' ') | title }}
+                            </p>
+                            <p style="font-size:var(--text-xs);color:var(--text-tertiary);margin-top:2px;">
+                                {{ event.created_at | default('') }}
+                            </p>
+                        </div>
+                    </div>
+                    {% else %}
+                    <p style="text-align:center;padding:var(--space-4);color:var(--text-tertiary);font-size:var(--text-sm);">
+                        No activity yet.
+                    </p>
+                    {% endfor %}
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/pages/dashboard.js') }}"></script>
+{% endblock %}
