@@ -103,13 +103,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const updatedLabel = formatRelativeTime(col.updated_at);
     const count = col.item_count ?? 0;
 
+    const cover = col.cover_thumbnail_url || (col.cover_file_id ? `/api/thumb/${col.cover_file_id}` : null);
     card.innerHTML = `
       <div style="height:160px;display:grid;grid-template-columns:2fr 1fr;grid-template-rows:1fr 1fr;
                   gap:2px;padding:2px;border-radius:var(--radius-md) var(--radius-md) 0 0;overflow:hidden;">
         <div style="background:var(--bg-hover);grid-row:1/3;display:flex;align-items:center;
                     justify-content:center;flex-direction:column;gap:8px;">
-          <i data-lucide="folder-open" style="width:40px;height:40px;color:var(--color-accent);opacity:0.5;"></i>
-          <span style="font-size:var(--text-xs);color:var(--text-tertiary);">${count} item${count !== 1 ? 's' : ''}</span>
+          ${cover ? `<img src="${escHtml(cover)}" alt="${escHtml(col.name)}" style="width:100%;height:100%;object-fit:cover;">` : `<div style="display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;height:100%;width:100%;">
+            <i data-lucide="folder-open" style="width:40px;height:40px;color:var(--color-accent);opacity:0.5;"></i>
+            <span style="font-size:var(--text-xs);color:var(--text-tertiary);">${count} item${count !== 1 ? 's' : ''}</span>
+          </div>`}
         </div>
         <div style="background:var(--bg-surface);display:flex;align-items:center;justify-content:center;">
           <i data-lucide="image" style="opacity:0.2;"></i>
@@ -174,9 +177,6 @@ document.addEventListener('DOMContentLoaded', () => {
         <button class="context-menu-item" data-action="view">
           <i data-lucide="folder-open"></i> Open
         </button>
-        <button class="context-menu-item" data-action="rename">
-          <i data-lucide="edit-2"></i> Rename
-        </button>
         <div style="height:1px;background:var(--border-default);margin:4px 0;"></div>
         <button class="context-menu-item" data-action="delete" style="color:var(--color-error);">
           <i data-lucide="trash-2"></i> Delete
@@ -199,12 +199,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (window.lucide) lucide.createIcons({ nodes: [menu] });
 
       menu.querySelector('[data-action="view"]').addEventListener('click', () => {
-        Toast.info(`Opening "${col.name}" — file view coming in Phase 3`);
-        closeActiveMenu();
-      });
-
-      menu.querySelector('[data-action="rename"]').addEventListener('click', () => {
-        Toast.info(`Rename coming in Phase 3`);
+        window.location.href = `/collections/${col.id}`;
         closeActiveMenu();
       });
 

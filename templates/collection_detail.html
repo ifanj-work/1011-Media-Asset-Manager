@@ -25,7 +25,7 @@
             </div>
         </div>
         <div style="display: flex; gap: var(--space-3);">
-            <button class="btn btn-secondary"><i data-lucide="share-2"></i> Share</button>
+            <button class="btn btn-secondary" disabled title="Sharing is not available in demo mode."><i data-lucide="share-2"></i> Share (Demo)</button>
         </div>
     </div>
 
@@ -40,6 +40,8 @@
             <select class="form-select form-input-sm" id="sort-select" style="width: auto;">
                 <option value="newest">Newest Added</option>
                 <option value="oldest">Oldest Added</option>
+                <option value="name-az">A-Z</option>
+                <option value="name-za">Z-A</option>
             </select>
         </div>
     </div>
@@ -59,10 +61,14 @@
             <i data-lucide="x"></i>
         </button>
 
-        <!-- Image Preview Area -->
+        <!-- Image/Video Preview Area -->
         <div class="preview-area" style="flex: 1; background: #000; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden;">
             <img id="modal-preview-img" src="" alt=""
                  style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; display: none;">
+            <video id="modal-preview-video" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; display: none;" controls>
+              <source src="" type="video/mp4">
+              Your browser does not support the video tag.
+            </video>
             <i id="modal-preview-icon" data-lucide="image" class="text-tertiary" style="width: 120px; height: 120px; opacity: 0.2;"></i>
             <button id="modal-prev" class="btn btn-icon btn-ghost" style="position: absolute; left: var(--space-4); color: white; background: rgba(0,0,0,0.5);" aria-label="Previous file">
                 <i data-lucide="chevron-left"></i>

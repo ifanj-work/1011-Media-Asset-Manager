@@ -83,6 +83,77 @@
         <!-- Right Column -->
         <div style="display:flex;flex-direction:column;gap:var(--space-4);">
 
+            <!-- Index Management: Scanner -->
+            <div class="card" style="padding:0;">
+                <div style="padding:var(--space-4);border-bottom:1px solid var(--border-default);display:flex;justify-content:space-between;align-items:center;">
+                    <h3 class="font-poppins text-base">Index Management</h3>
+                    <i data-lucide="refresh-cw" id="scan-status-icon" style="width:16px;height:16px;color:var(--text-tertiary);"></i>
+                </div>
+                <div style="padding:var(--space-4);">
+                    <div class="form-group" style="margin-bottom:var(--space-3);">
+                        <label class="text-xs text-secondary" style="margin-bottom:4px;display:block;">Library Directory Path</label>
+                        <div style="display:flex;gap:var(--space-2);">
+                            <input type="text" id="library-path-input" class="form-input text-sm" 
+                                   placeholder="e.g. \\172.16.0.25\data; \\172.16.0.25\data xxv" style="flex:1;">
+                            <button id="btn-save-path" class="btn btn-ghost btn-sm" title="Save Path">
+                                <i data-lucide="save" style="width:14px;height:14px;"></i>
+                            </button>
+                        </div>
+                        <p class="text-tertiary" style="font-size:var(--text-xs);margin-top:6px;">Use <code>;</code> to separate multiple directories.</p>
+                    </div>
+                    
+                    <button id="btn-rescan" class="btn btn-primary w-full" style="display:flex;align-items:center;justify-content:center;gap:var(--space-2);">
+                        <i data-lucide="search" style="width:16px;height:16px;"></i>
+                        <span>Start Rescan</span>
+                    </button>
+
+                    <div id="scan-progress-container" class="hidden" style="margin-top:var(--space-3);">
+                        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:var(--space-1);">
+                            <span class="text-xs text-secondary">Scanning in progress...</span>
+                        </div>
+                        <div class="progress-bar-indeterminate"></div>
+                    </div>
+
+                    <div id="scan-result-msg" style="margin-top:var(--space-3);font-size:var(--text-xs);display:none;">
+                        <!-- Results injected here -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" style="padding:0;">
+                <div style="padding:var(--space-4);border-bottom:1px solid var(--border-default);">
+                    <h3 class="font-poppins text-base">Catalog Health</h3>
+                </div>
+                <div style="padding:var(--space-4);display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3);">
+                    <div>
+                        <div class="text-tertiary" style="font-size:var(--text-xs);text-transform:uppercase;">Last Scan</div>
+                        <div class="font-poppins" style="margin-top:4px;">{{ stats.health.last_scan[:19] if stats.health.last_scan else 'Never' }}</div>
+                    </div>
+                    <div>
+                        <div class="text-tertiary" style="font-size:var(--text-xs);text-transform:uppercase;">Duration</div>
+                        <div class="font-poppins" style="margin-top:4px;">{{ stats.health.last_scan_duration_s | default(0) }}s</div>
+                    </div>
+                    <div>
+                        <div class="text-tertiary" style="font-size:var(--text-xs);text-transform:uppercase;">Configured Paths</div>
+                        <div class="font-poppins" style="margin-top:4px;">{{ stats.health.configured_path_count | default(0) }}</div>
+                    </div>
+                    <div>
+                        <div class="text-tertiary" style="font-size:var(--text-xs);text-transform:uppercase;">Invalid Paths</div>
+                        <div class="font-poppins" style="margin-top:4px;color:{% if stats.health.invalid_path_count|default(0) > 0 %}var(--color-warning){% else %}var(--text-primary){% endif %};">
+                            {{ stats.health.invalid_path_count | default(0) }}
+                        </div>
+                    </div>
+                    <div>
+                        <div class="text-tertiary" style="font-size:var(--text-xs);text-transform:uppercase;">Folders Indexed</div>
+                        <div class="font-poppins" style="margin-top:4px;">{{ stats.folders_indexed | default(0) }}</div>
+                    </div>
+                    <div>
+                        <div class="text-tertiary" style="font-size:var(--text-xs);text-transform:uppercase;">Saved Searches</div>
+                        <div class="font-poppins" style="margin-top:4px;">{{ stats.saved_searches | default(0) }}</div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Tag Status: Tagging Progress -->
             <div class="card" style="padding:0;">
                 <div style="padding:var(--space-4);border-bottom:1px solid var(--border-default);">

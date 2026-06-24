@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
     lastClickedFileId: null,
     currentFile: null,         // full file object currently in modal
     allFiles: [],              // current page results from API
+    focusedIndex: null,
     query: '',
     filter: 'all',
     sort: 'newest',
@@ -78,7 +79,10 @@ document.addEventListener('DOMContentLoaded', () => {
   // ─── Search / load assets from API ────────────────────────────────────────
   async function loadAssets(resetPage = true) {
     if (state.loading) return;
-    if (resetPage) state.page = 1;
+    if (resetPage) {
+      state.page = 1;
+      state.focusedIndex = null;
+    }
 
     state.loading = true;
     showGridSkeleton();
@@ -122,6 +126,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function clearGrid() {
+    if (resultCount) resultCount.textContent = 'Showing 0 of 0';
     grid.innerHTML = `
       <div style="grid-column:1/-1;text-align:center;padding:var(--space-16);color:var(--text-tertiary);">
         <i data-lucide="search-x" style="width:48px;height:48px;margin-bottom:var(--space-4);opacity:0.4;"></i>
@@ -162,8 +167,10 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function loadAssetsMore() {
+    if (state.loading) return;
     const loadMoreBtn = document.getElementById('load-more-btn');
     if (loadMoreBtn) loadMoreBtn.textContent = 'Loading...';
+    state.loading = true;
 
     const params = new URLSearchParams({
       q: state.query, type: state.filter, sort: state.sort,
@@ -193,9 +200,14 @@ document.addEventListener('DOMContentLoaded', () => {
       if (window.lucide) lucide.createIcons({ nodes: [grid] });
       attachCardEvents();
       renderSelection();
+      if (resultCount) {
+        resultCount.textContent = `Showing ${state.allFiles.length} of ${data.total.toLocaleString()}`;
+      }
     } catch (e) {
       Toast.error('Failed to load more.');
       if (loadMoreBtn) loadMoreBtn.textContent = 'Load More';
+    } finally {
+      state.loading = false;
     }
   }
 
@@ -218,7 +230,8 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="asset-card${isSelected ? ' selected' : ''}"
            data-file-id="${escHtml(file.id)}"
            data-idx="${i}"
-           data-type="${isVideo ? 'video' : isPsd ? 'psd' : 'image'}">
+           data-type="${isVideo ? 'video' : isPsd ? 'psd' : 'image'}"
+           tabindex="0">
         <label class="asset-card-check">
           <input type="checkbox" ${isSelected ? 'checked' : ''}
                  style="opacity:0;position:absolute;width:100%;height:100%;cursor:pointer;">
@@ -266,6 +279,10 @@ document.addEventListener('DOMContentLoaded', () => {
       card.addEventListener('click', e => {
         if (e.target.closest('.asset-card-thumb') || e.target.closest('.asset-card-check')) return;
         if (state.selected.size > 0 || e.shiftKey) toggleSelect(fileId, idx, e.shiftKey);
+      });
+
+      card.addEventListener('focus', () => {
+        state.focusedIndex = idx;
       });
     });
   }
@@ -321,7 +338,7 @@ document.addEventListener('DOMContentLoaded', () => {
     batchDlBtn.addEventListener('click', async () => {
       if (state.selected.size === 0) return;
       const fileIds = [...state.selected];
-      Toast.info(`Starting download of ${fileIds.length} file(s)…`);
+      Toast.info(`Starting download of ${fileIds.length} file(s)...`);
       
       try {
         const res = await fetch('/api/batch/download', {
@@ -329,7 +346,10 @@ document.addEventListener('DOMContentLoaded', () => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ file_ids: fileIds })
         });
-        if (!res.ok) throw new Error("Batch DL failed");
+        if (!res.ok) {
+          const err = await safeJson(res);
+          throw new Error(err?.error || 'Batch download failed.');
+        }
         
         // Trigger download via blob
         const blob = await res.blob();
@@ -344,7 +364,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         clearSelection();
       } catch (e) {
-        Toast.error("Batch download failed.");
+        Toast.error(e.message || 'Batch download failed.');
       }
     });
   }
@@ -450,8 +470,33 @@ document.addEventListener('DOMContentLoaded', () => {
     if (detailModal?.classList.contains('modal-open')) {
       if (e.key === 'ArrowLeft')  navigateModal(-1);
       if (e.key === 'ArrowRight') navigateModal(1);
+      return;
     }
-    // Ctrl+K: focus search
+
+    if (isEditableTarget(e.target)) {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        searchInput?.focus();
+      }
+      return;
+    }
+
+    if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
+      e.preventDefault();
+      if (e.key === 'ArrowLeft') moveGridFocus(-1);
+      if (e.key === 'ArrowRight') moveGridFocus(1);
+      if (e.key === 'ArrowUp') moveGridFocus(-estimateGridColumns());
+      if (e.key === 'ArrowDown') moveGridFocus(estimateGridColumns());
+    }
+
+    if (e.key === 'Enter') {
+      const card = document.activeElement?.closest?.('.asset-card[data-file-id]');
+      if (card) {
+        e.preventDefault();
+        openDetailModal(card.dataset.fileId);
+      }
+    }
+
     if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
       e.preventDefault();
       searchInput?.focus();
@@ -527,9 +572,19 @@ document.addEventListener('DOMContentLoaded', () => {
     if (dlBtn) {
         const newDlBtn = dlBtn.cloneNode(true);
         dlBtn.parentNode.replaceChild(newDlBtn, dlBtn);
-        newDlBtn.addEventListener('click', () => {
-             window.open(`/api/download/${file.id}`, '_blank');
+        if (file.available) {
+          newDlBtn.innerHTML = '<i data-lucide="download"></i> Download Original';
+        } else {
+          newDlBtn.innerHTML = '<i data-lucide="download"></i> Original Unavailable';
+        }
+        newDlBtn.addEventListener('click', async () => {
+          if (!file.available) {
+            Toast.info('Original file is unavailable in demo mode.');
+            return;
+          }
+          await downloadOriginal(file.id, file.filename);
         });
+        if (window.lucide) lucide.createIcons({ nodes: [newDlBtn] });
     }
 
     const addColBtn = detailModal.querySelector('#modal-add-collection-btn');
@@ -669,8 +724,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     const colId = item.dataset.colId;
                     item.style.opacity = '0.5';
                     try {
-                        await apiPost(`/api/collections/${colId}/items`, { file_ids: fileIds });
-                        Toast.success(`Added ${fileIds.length} item(s) to collection`);
+                        const result = await apiPost(`/api/collections/${colId}/items`, { file_ids: fileIds });
+                        if (result.added > 0) {
+                          Toast.success(`Added ${result.added} new item(s) to collection`);
+                        } else {
+                          Toast.info('All selected items are already in this collection.');
+                        }
                         ModalManager.close('collection-picker-modal');
                         clearSelection();
                     } catch(e) {
@@ -688,8 +747,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const pickerNewBtn = document.getElementById('collection-picker-create-new');
   if (pickerNewBtn) {
       pickerNewBtn.addEventListener('click', () => {
-          Toast.info("Create a new collection from the Collections page.");
           ModalManager.close('collection-picker-modal');
+          window.location.href = '/collections';
       });
   }
 
@@ -708,6 +767,74 @@ document.addEventListener('DOMContentLoaded', () => {
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;
     return `${m}:${String(s).padStart(2, '0')}`;
+  }
+
+  function getVisibleCards() {
+    return [...grid.querySelectorAll('.asset-card[data-file-id]')];
+  }
+
+  function estimateGridColumns() {
+    const cards = getVisibleCards();
+    if (cards.length <= 1) return 1;
+    const firstTop = cards[0].offsetTop;
+    let cols = 0;
+    for (const card of cards) {
+      if (card.offsetTop !== firstTop) break;
+      cols += 1;
+    }
+    return Math.max(cols, 1);
+  }
+
+  function moveGridFocus(delta) {
+    const cards = getVisibleCards();
+    if (!cards.length) return;
+
+    const activeCard = document.activeElement?.closest?.('.asset-card[data-file-id]');
+    let currentIdx = activeCard ? Number(activeCard.dataset.idx) : state.focusedIndex;
+    if (!Number.isInteger(currentIdx)) currentIdx = 0;
+
+    const nextIdx = Math.max(0, Math.min(cards.length - 1, currentIdx + delta));
+    const nextCard = cards.find(card => Number(card.dataset.idx) === nextIdx) || cards[nextIdx];
+    if (nextCard) {
+      nextCard.focus();
+      state.focusedIndex = Number(nextCard.dataset.idx);
+    }
+  }
+
+  function isEditableTarget(target) {
+    return Boolean(
+      target?.closest?.('input, textarea, select, button, [contenteditable="true"], .tag-autocomplete')
+    );
+  }
+
+  async function downloadOriginal(fileId, filename) {
+    try {
+      const res = await fetch(`/api/download/${fileId}`);
+      if (!res.ok) {
+        const err = await safeJson(res);
+        throw new Error(err?.error || 'Original file is unavailable in demo mode.');
+      }
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename || 'asset';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (e) {
+      Toast.info(e.message || 'Original file is unavailable in demo mode.');
+    }
+  }
+
+  async function safeJson(response) {
+    try {
+      return await response.json();
+    } catch (_) {
+      return null;
+    }
   }
 
   // ─── Init ─────────────────────────────────────────────────────────────────

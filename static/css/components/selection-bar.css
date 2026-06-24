@@ -6,12 +6,16 @@
   display: flex; align-items: center; justify-content: space-between;
   z-index: var(--z-sticky); box-shadow: 0 -4px 12px rgba(0,0,0,0.3);
   transform: translateY(100%); opacity: 0;
-  transition: transform var(--duration-normal) var(--ease-enter), opacity var(--duration-normal);
+  transition: transform var(--duration-normal) var(--ease-enter), opacity var(--duration-normal), left var(--duration-normal) var(--ease-enter);
 }
 .selection-bar.visible { transform: translateY(0); opacity: 1; }
 .selection-bar-left { display: flex; align-items: center; gap: var(--space-3); }
 .selection-bar-count { font-weight: 600; color: var(--color-accent); }
 .selection-bar-actions { display: flex; gap: var(--space-2); }
+
+.sidebar.collapsed ~ .main .selection-bar {
+  left: var(--sidebar-collapsed);
+}
 
 @media (max-width: 1024px) { .selection-bar { left: var(--sidebar-collapsed); } }
 @media (max-width: 768px) { .selection-bar { left: 0; } }

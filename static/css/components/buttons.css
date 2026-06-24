@@ -22,41 +22,49 @@
 .btn-sm svg { width: 16px; height: 16px; }
 .btn-lg { padding: var(--space-3) var(--space-6); font-size: var(--text-lg); }
 
-/* Primary */
+/* Primary (Solid White Pill) */
 .btn-primary {
-  background: var(--color-accent);
-  color: #FFFFFF;
+  background: #ffffff;
+  color: #000000;
+  border-radius: var(--radius-button-solid);
+  font-weight: 600;
 }
-.btn-primary:hover { filter: brightness(1.15); }
-.btn-primary:active { transform: scale(0.97); }
+.btn-primary:hover { filter: brightness(0.9); }
+.btn-primary:active { transform: scale(0.95); }
 
-/* Secondary (outline) */
+/* Secondary (Frosted Pill) */
 .btn-secondary {
-  background: transparent;
-  color: var(--color-accent);
-  border: 1px solid var(--border-subtle);
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+  border-radius: var(--radius-button);
+  border: 1px solid transparent;
 }
 .btn-secondary:hover {
-  background: var(--color-accent-subtle);
-  border-color: var(--color-accent);
+  background: rgba(255, 255, 255, 0.15);
 }
+.btn-secondary:active { transform: scale(0.95); }
 
 /* Ghost */
 .btn-ghost {
   background: transparent;
   color: var(--text-secondary);
+  border-radius: var(--radius-button);
 }
 .btn-ghost:hover {
   color: var(--text-primary);
-  background: var(--bg-hover);
+  background: rgba(255, 255, 255, 0.1); /* Frosted on hover */
 }
+.btn-ghost:active { transform: scale(0.95); }
 
 /* Danger */
 .btn-danger {
-  background: var(--color-error);
-  color: #FFFFFF;
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--color-error);
+  border-radius: var(--radius-button);
+  border: 1px solid rgba(239, 68, 68, 0.2);
 }
-.btn-danger:hover { filter: brightness(1.1); }
+.btn-danger:hover { background: rgba(239, 68, 68, 0.2); }
+.btn-danger:active { transform: scale(0.95); }
 
 /* Icon-only */
 .btn-icon {

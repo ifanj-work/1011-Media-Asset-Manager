@@ -72,10 +72,10 @@
             </nav>
             
             <div class="sidebar-footer">
-                <a href="/settings" class="sidebar-nav-item {{ 'active' if request.path == '/settings' else '' }}">
+                <div class="sidebar-nav-item disabled" aria-disabled="true" title="Settings are not available in demo mode.">
                     <i data-lucide="settings"></i>
-                    <span>Settings</span>
-                </a>
+                    <span>Settings (Demo)</span>
+                </div>
                 <button class="sidebar-toggle" id="sidebar-toggle" aria-label="Collapse Sidebar">
                     <i data-lucide="chevrons-left"></i>
                     <span>Collapse</span>
@@ -96,10 +96,10 @@
                 </div>
 
                 <div class="header-right">
-                    <button class="btn btn-icon btn-ghost" aria-label="Upload files">
+                    <button class="btn btn-icon btn-ghost" aria-label="Upload files unavailable in demo mode" title="Upload is not available in demo mode." disabled>
                         <i data-lucide="upload-cloud"></i>
                     </button>
-                    <button class="btn btn-icon btn-ghost" aria-label="Notifications">
+                    <button class="btn btn-icon btn-ghost" aria-label="Notifications unavailable in demo mode" title="Notifications are not available in demo mode." disabled>
                         <i data-lucide="bell"></i>
                     </button>
                     <!-- User Avatar Placeholder -->

@@ -3,222 +3,419 @@
 {% block title %}Library Search | 1011 Media Asset Manager{% endblock %}
 {% block page_title %}Asset Library{% endblock %}
 
+{% block head %}
+<style>
+  .search-shell {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
+    height: 100%;
+    min-height: 0;
+  }
+
+  .search-panel {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-card);
+    padding: var(--space-4);
+  }
+
+  .search-panel-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    max-height: 260px;
+    overflow-y: auto;
+  }
+
+  .search-panel-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-button);
+    color: var(--text-secondary);
+    text-decoration: none;
+    background: transparent;
+    border: 0;
+    width: 100%;
+    text-align: left;
+  }
+
+  .search-panel-item:hover,
+  .search-panel-item.active {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+  }
+
+  .search-panel-item-actions {
+    display: flex;
+    gap: 4px;
+    opacity: 0;
+    transition: opacity var(--duration-fast);
+  }
+
+  .search-panel-item:hover .search-panel-item-actions,
+  .search-panel-item:focus-within .search-panel-item-actions {
+    opacity: 1;
+  }
+
+  .folder-tree-node {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .folder-tree-children {
+    margin-left: var(--space-4);
+    padding-left: var(--space-2);
+    border-left: 1px solid var(--border-default);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .search-main {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .result-viewport {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    border-radius: var(--radius-card);
+    border: 1px solid var(--border-default);
+    background: var(--bg-surface);
+  }
+
+  .virtual-stage {
+    position: relative;
+    min-height: 100%;
+  }
+
+  .virtual-card {
+    position: absolute;
+    width: var(--card-width, 220px);
+  }
+
+  .virtual-list-card {
+    width: calc(100% - (2 * var(--space-3)));
+  }
+
+  .search-empty-state {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-tertiary);
+    gap: var(--space-2);
+  }
+
+  .search-empty-state[hidden] {
+    display: none !important;
+  }
+
+  .preview-toolbar {
+    position: absolute;
+    top: var(--space-4);
+    right: var(--space-4);
+    display: flex;
+    gap: var(--space-2);
+    z-index: 3;
+  }
+
+  .preview-stage {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+  }
+
+  .preview-stage img {
+    transform-origin: center center;
+    cursor: grab;
+    user-select: none;
+  }
+
+  .preview-stage img.dragging {
+    cursor: grabbing;
+  }
+
+  .metadata-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .metadata-table td {
+    padding: 4px 0;
+    font-size: var(--text-sm);
+  }
+
+  .metadata-table td:first-child {
+    width: 42%;
+    color: var(--text-secondary);
+    font-size: var(--text-xs);
+  }
+
+  .path-field {
+    width: 100%;
+    font-size: var(--text-xs);
+    color: var(--text-tertiary);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-button);
+    padding: var(--space-2) var(--space-3);
+  }
+
+  @media (max-width: 1100px) {
+    .search-shell {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="search-container" style="display: flex; flex-direction: column; height: 100%;">
-    <!-- Search Input -->
-    <div style="margin-bottom: var(--space-4);">
-        <div class="global-search" style="width: 100%; max-width: none;">
-            <i data-lucide="search" class="global-search-icon"></i>
-            <input type="text" placeholder="Search files, tags, or collections... (Ctrl+K)" class="global-search-input" id="library-search" autocomplete="off" autofocus>
-        </div>
+<div class="search-shell">
+  <section class="search-main">
+    <div style="margin-bottom:var(--space-4);">
+      <div class="global-search" style="width:100%;max-width:none;">
+        <i data-lucide="search" class="global-search-icon"></i>
+        <input type="text" placeholder="Search files, tags, or folders... (Ctrl+K)" class="global-search-input" id="library-search" autocomplete="off" autofocus>
+      </div>
     </div>
 
-    <!-- Toolbar -->
-    <div class="toolbar" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-4); padding: var(--space-2) 0; border-bottom: 1px solid var(--border-default);">
-        <div class="toolbar-left" style="display: flex; gap: var(--space-2); align-items: center;">
-            <div class="filter-group">
-                <button class="filter-chip active" data-filter="all">All</button>
-                <button class="filter-chip" data-filter="images">Images</button>
-                <button class="filter-chip" data-filter="videos">Videos</button>
-                <button class="filter-chip" data-filter="psd">PSD</button>
-            </div>
-            <div style="width: 1px; height: 24px; background: var(--border-default); margin: 0 var(--space-2);"></div>
-            <!-- Date Range Picker -->
-            <div style="position: relative;">
-                <button id="date-range-btn" class="btn btn-secondary btn-sm">
-                    <i data-lucide="calendar"></i> Date Range
-                </button>
-                <div id="date-range-popover" style="display:none; position:absolute; background:var(--bg-elevated); border:1px solid var(--border-default); border-radius:var(--radius-md); padding:var(--space-4); box-shadow:var(--shadow-3); z-index:var(--z-dropdown); top:calc(100% + 4px); left:0; min-width:380px;">
-                    <div style="display:flex; gap:var(--space-3); align-items:flex-end;">
-                        <div>
-                            <label class="form-label" style="font-size:var(--text-xs); margin-bottom:4px;">From</label>
-                            <input type="date" id="date-from-input" class="form-input form-input-sm" style="width:155px;">
-                        </div>
-                        <div>
-                            <label class="form-label" style="font-size:var(--text-xs); margin-bottom:4px;">To</label>
-                            <input type="date" id="date-to-input" class="form-input form-input-sm" style="width:155px;">
-                        </div>
-                        <div style="display:flex; gap:var(--space-2);">
-                            <button id="date-range-apply" class="btn btn-primary btn-sm">Apply</button>
-                            <button id="date-range-clear" class="btn btn-secondary btn-sm">Clear</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
+    <div class="toolbar" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-4);padding:var(--space-2) 0;border-bottom:1px solid var(--border-default);gap:var(--space-4);flex-wrap:wrap;">
+      <div class="toolbar-left" style="display:flex;gap:var(--space-2);align-items:center;flex-wrap:wrap;">
+        <div class="filter-group">
+          <button class="filter-chip active" data-filter="all">All</button>
+          <button class="filter-chip" data-filter="images">Images</button>
+          <button class="filter-chip" data-filter="videos">Videos</button>
+          <button class="filter-chip" data-filter="psd">PSD</button>
         </div>
-        
-        <div class="toolbar-right" style="display: flex; gap: var(--space-3); align-items: center;">
-            <span id="result-count" class="text-tertiary font-inter" style="font-size: var(--text-sm);">Loading…</span>
-            
-            <select class="form-select form-input-sm" id="sort-select" style="width: auto;">
-                <option value="newest">Newest First</option>
-                <option value="oldest">Oldest First</option>
-                <option value="name-az">A–Z</option>
-                <option value="name-za">Z–A</option>
-                <option value="size-desc">Largest First</option>
-            </select>
+        <div class="toolbar-separator"></div>
+        <div style="position:relative;">
+          <button id="date-range-btn" class="btn btn-secondary btn-sm">
+            <i data-lucide="calendar"></i> Date Range
+          </button>
+          <div id="date-range-popover" style="display:none;position:absolute;background:var(--bg-elevated);border:1px solid var(--border-default);border-radius:var(--radius-md);padding:var(--space-4);box-shadow:var(--shadow-3);z-index:var(--z-dropdown);top:calc(100% + 4px);left:0;min-width:380px;">
+            <div style="display:flex;gap:var(--space-3);align-items:flex-end;">
+              <div>
+                <label class="form-label" style="font-size:var(--text-xs);margin-bottom:4px;">From</label>
+                <input type="date" id="date-from-input" class="form-input form-input-sm" style="width:155px;">
+              </div>
+              <div>
+                <label class="form-label" style="font-size:var(--text-xs);margin-bottom:4px;">To</label>
+                <input type="date" id="date-to-input" class="form-input form-input-sm" style="width:155px;">
+              </div>
+              <div style="display:flex;gap:var(--space-2);">
+                <button id="date-range-apply" class="btn btn-primary btn-sm">Apply</button>
+                <button id="date-range-clear" class="btn btn-secondary btn-sm">Clear</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <span id="active-folder-label" class="text-tertiary" style="font-size:var(--text-xs);display:none;"></span>
+      </div>
 
-            <div class="view-toggle" style="display: flex; background: var(--bg-elevated); border-radius: var(--radius-md); padding: 2px;">
-                <button class="btn btn-icon btn-sm active" data-view="grid" style="background: var(--bg-hover);" aria-label="Grid view">
-                    <i data-lucide="layout-grid" style="width: 16px; height: 16px;"></i>
-                </button>
-                <button class="btn btn-icon btn-sm btn-ghost" data-view="list" aria-label="List view">
-                    <i data-lucide="list" style="width: 16px; height: 16px;"></i>
-                </button>
-            </div>
+      <div class="toolbar-right" style="display:flex;gap:var(--space-3);align-items:center;flex-wrap:wrap;">
+        <span id="result-count" class="text-tertiary font-inter" style="font-size:var(--text-sm);">Loading...</span>
+        <select class="form-select form-input-sm" id="sort-select" style="width:auto;">
+          <option value="newest">Newest First</option>
+          <option value="oldest">Oldest First</option>
+          <option value="name-az">A-Z</option>
+          <option value="name-za">Z-A</option>
+          <option value="size-desc">Largest First</option>
+        </select>
+        <div class="view-toggle" style="display:flex;background:var(--bg-elevated);border-radius:var(--radius-md);padding:2px;">
+          <button class="btn btn-icon btn-sm active" data-view="grid" style="background:var(--bg-hover);" aria-label="Grid view">
+            <i data-lucide="layout-grid" style="width:16px;height:16px;"></i>
+          </button>
+          <button class="btn btn-icon btn-sm btn-ghost" data-view="list" aria-label="List view">
+            <i data-lucide="list" style="width:16px;height:16px;"></i>
+          </button>
         </div>
+      </div>
     </div>
 
-    <!-- Asset Grid - Populated by search.js -->
-    <div class="asset-grid" id="asset-grid" style="align-content: flex-start; overflow-y: auto; padding-right: var(--space-2);">
-        <!-- search.js loadAssets() renders cards here -->
+    <div id="asset-scroll" class="result-viewport">
+      <div id="asset-grid" class="virtual-stage"></div>
+      <div id="asset-empty" class="search-empty-state" hidden>
+        <i data-lucide="search-x" style="width:48px;height:48px;opacity:0.35;"></i>
+        <p>No assets found.</p>
+      </div>
     </div>
+  </section>
 </div>
 
-<!-- ═══════════════════════════════════════════════════════════════════════════ -->
-<!-- Asset Detail Modal                                                          -->
-<!-- ═══════════════════════════════════════════════════════════════════════════ -->
-<div id="detail-modal" class="modal-overlay" style="display: none;">
-    <div class="modal detail-modal" style="display: flex; width: 90vw; height: 90vh; max-width: 1400px; padding: 0; overflow: hidden;">
-        <button class="modal-close" data-modal-close="detail-modal" aria-label="Close">
-            <i data-lucide="x"></i>
+<div id="detail-modal" class="modal-overlay" style="display:none;">
+  <div class="modal detail-modal" style="display:flex;width:90vw;height:90vh;max-width:1400px;padding:0;overflow:hidden;">
+    <button class="modal-close" data-modal-close="detail-modal" aria-label="Close">
+      <i data-lucide="x"></i>
+    </button>
+
+    <div class="preview-area" id="modal-preview-area" style="flex:1;background:#000;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;">
+      <div class="preview-toolbar">
+        <button id="zoom-out-btn" class="btn btn-icon btn-ghost" style="color:white;background:rgba(0,0,0,0.5);" aria-label="Zoom out">
+          <i data-lucide="zoom-out"></i>
         </button>
-
-        <!-- Image Preview Area -->
-        <div class="preview-area" style="flex: 1; background: #000; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden;">
-            <img id="modal-preview-img" src="" alt=""
-                 style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; display: none;">
-            <i id="modal-preview-icon" data-lucide="image" class="text-tertiary" style="width: 120px; height: 120px; opacity: 0.2;"></i>
-            <button id="modal-prev" class="btn btn-icon btn-ghost" style="position: absolute; left: var(--space-4); color: white; background: rgba(0,0,0,0.5);" aria-label="Previous file">
-                <i data-lucide="chevron-left"></i>
-            </button>
-            <button id="modal-next" class="btn btn-icon btn-ghost" style="position: absolute; right: var(--space-4); color: white; background: rgba(0,0,0,0.5);" aria-label="Next file">
-                <i data-lucide="chevron-right"></i>
-            </button>
-        </div>
-
-        <!-- Metadata Sidebar -->
-        <div class="metadata-sidebar" style="width: 320px; background: var(--bg-surface); padding: var(--space-6); display: flex; flex-direction: column; gap: var(--space-6); border-left: 1px solid var(--border-default); overflow-y: auto;">
-            
-            <div class="meta-section">
-                <h2 id="modal-filename" class="font-poppins" style="font-size: var(--text-lg); font-weight: 600; margin-bottom: var(--space-2); word-break: break-all;">Match_Action_001.jpg</h2>
-                <div class="text-secondary font-inter" style="font-size: var(--text-sm);">
-                    <p id="modal-meta">4.2 MB • 4000×3000 • JPG</p>
-                    <p id="modal-path" style="margin-top: 4px; word-break: break-all; font-size: var(--text-xs); color: var(--text-tertiary);">\\172.16.0.25\data\2026\Match\Match_Action_001.jpg</p>
-                </div>
-            </div>
-
-            <div class="meta-section">
-                <h3 class="font-poppins text-primary" style="font-size: var(--text-sm); font-weight: 600; margin-bottom: var(--space-3); text-transform: uppercase; letter-spacing: 0.05em;">Tags</h3>
-                <!-- Tag input component mounts here -->
-                <div id="modal-tag-input-container"></div>
-            </div>
-
-            <div class="meta-section">
-                <h3 class="font-poppins text-primary" style="font-size: var(--text-sm); font-weight: 600; margin-bottom: var(--space-3); text-transform: uppercase; letter-spacing: 0.05em;">EXIF Data</h3>
-                <table style="width: 100%; border: none;">
-                    <tbody id="modal-exif-body">
-                        <tr>
-                            <td style="color: var(--text-secondary); width: 40%; font-size: var(--text-xs); padding: 4px 0;">Camera</td>
-                            <td style="font-size: var(--text-sm); padding: 4px 0; text-align: right;">Sony A7III</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <div class="meta-actions" style="margin-top: auto; display: flex; flex-direction: column; gap: var(--space-2);">
-                <button id="modal-download-btn" class="btn btn-primary"><i data-lucide="download"></i> Download Original</button>
-                <button id="modal-open-location-btn" class="btn btn-secondary"><i data-lucide="folder-output"></i> Open File Location</button>
-                <button id="modal-add-collection-btn" class="btn btn-secondary"><i data-lucide="folder-plus"></i> Add to Collection</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-    </div>
-</div>
-
-<!-- ═══════════════════════════════════════════════════════════════════════════ -->
-<!-- Collection Picker Modal                                                      -->
-<!-- ═══════════════════════════════════════════════════════════════════════════ -->
-<div id="collection-picker-modal" class="modal-overlay" style="display: none;">
-    <div class="modal" style="width: 460px; max-height: 85vh; display: flex; flex-direction: column; padding: 0; overflow: hidden;">
-        <button class="modal-close" data-modal-close="collection-picker-modal" aria-label="Close">
-            <i data-lucide="x"></i>
+        <button id="zoom-reset-btn" class="btn btn-icon btn-ghost" style="color:white;background:rgba(0,0,0,0.5);" aria-label="Reset zoom">
+          <i data-lucide="scan-search"></i>
         </button>
-        <div class="modal-header">
-            <h2 class="font-poppins" style="font-size: var(--text-xl); font-weight: 600;">Add to Collection</h2>
-            <p id="collection-picker-subtitle" class="text-secondary" style="font-size: var(--text-sm); margin-top: var(--space-1);">Select a collection.</p>
-        </div>
-        <div id="collection-picker-list" style="padding: var(--space-2) var(--space-4); overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: var(--space-2); min-height: 160px;">
-            <!-- Populated by JS -->
-        </div>
-        <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center; padding: var(--space-4) var(--space-6); border-top: 1px solid var(--border-default);">
-            <button id="collection-picker-create-new" class="btn btn-secondary btn-sm">
-                <i data-lucide="plus"></i> New Collection
-            </button>
-            <button class="btn btn-ghost" data-modal-close="collection-picker-modal">Cancel</button>
-        </div>
-    </div>
-</div>
-
-<!-- ═══════════════════════════════════════════════════════════════════════════ -->
-<!-- Batch Tag Modal                                                              -->
-<!-- ═══════════════════════════════════════════════════════════════════════════ -->
-<div id="batch-tag-modal" class="modal-overlay" style="display: none;">
-    <div class="modal" style="width: 480px;">
-        <button class="modal-close" data-modal-close="batch-tag-modal" aria-label="Close">
-            <i data-lucide="x"></i>
+        <button id="zoom-in-btn" class="btn btn-icon btn-ghost" style="color:white;background:rgba(0,0,0,0.5);" aria-label="Zoom in">
+          <i data-lucide="zoom-in"></i>
         </button>
-        <div class="modal-header">
-            <h2 class="font-poppins" style="font-size: var(--text-xl); font-weight: 600;">Batch Tag</h2>
-            <p class="text-secondary" style="font-size: var(--text-sm); margin-top: var(--space-1);">Apply tags to all selected files.</p>
+      </div>
+      <div class="preview-stage">
+        <img id="modal-preview-img" src="" alt="" style="position:absolute;inset:0;margin:auto;max-width:100%;max-height:100%;display:none;">
+        <video id="modal-preview-video" style="position:absolute;inset:0;margin:auto;max-width:100%;max-height:100%;display:none;" controls>
+          <source src="" type="video/mp4">
+          Your browser does not support the video tag.
+        </video>
+        <div id="modal-preview-empty" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;color:rgba(255,255,255,0.7);gap:var(--space-2);">
+          <i id="modal-preview-icon" data-lucide="image" style="width:120px;height:120px;opacity:0.2;"></i>
+          <span id="modal-preview-label" style="font-size:var(--text-sm);">Preview unavailable</span>
         </div>
-        <div class="modal-body" style="padding: var(--space-6);">
-            <label class="form-label">Tags to apply</label>
-            <div id="batch-tag-input-container"></div>
-            <p class="text-tertiary" style="font-size: var(--text-xs); margin-top: var(--space-2);">Press Enter or comma to add a tag. Existing tags on files won't be removed.</p>
-        </div>
-        <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: var(--space-3); padding: var(--space-4) var(--space-6); border-top: 1px solid var(--border-default);">
-            <button class="btn btn-secondary" data-modal-close="batch-tag-modal">Cancel</button>
-            <button class="btn btn-primary" data-batch-apply>
-                <i data-lucide="tag"></i> Apply Tags
-            </button>
-        </div>
+      </div>
+      <button id="modal-prev" class="btn btn-icon btn-ghost" style="position:absolute;left:var(--space-4);color:white;background:rgba(0,0,0,0.5);" aria-label="Previous file">
+        <i data-lucide="chevron-left"></i>
+      </button>
+      <button id="modal-next" class="btn btn-icon btn-ghost" style="position:absolute;right:var(--space-4);color:white;background:rgba(0,0,0,0.5);" aria-label="Next file">
+        <i data-lucide="chevron-right"></i>
+      </button>
     </div>
+
+    <div class="metadata-sidebar" style="width:340px;background:var(--bg-surface);padding:var(--space-6);display:flex;flex-direction:column;gap:var(--space-6);border-left:1px solid var(--border-default);overflow-y:auto;">
+      <div class="meta-section">
+        <h2 id="modal-filename" class="font-poppins" style="font-size:var(--text-lg);font-weight:600;margin-bottom:var(--space-2);word-break:break-all;"></h2>
+        <div class="text-secondary font-inter" style="font-size:var(--text-sm);">
+          <p id="modal-meta"></p>
+          <div style="margin-top:var(--space-2);">
+            <label class="form-label" style="font-size:var(--text-xs);margin-bottom:4px;">File Path</label>
+            <input id="modal-path" class="path-field" readonly value="">
+          </div>
+        </div>
+      </div>
+
+      <div class="meta-section">
+        <h3 class="font-poppins text-primary" style="font-size:var(--text-sm);font-weight:600;margin-bottom:var(--space-3);text-transform:uppercase;">Tags</h3>
+        <div id="modal-tag-input-container"></div>
+      </div>
+
+      <div class="meta-section">
+        <h3 class="font-poppins text-primary" style="font-size:var(--text-sm);font-weight:600;margin-bottom:var(--space-3);text-transform:uppercase;">Metadata</h3>
+        <table class="metadata-table">
+          <tbody id="modal-exif-body"></tbody>
+        </table>
+      </div>
+
+      <div class="meta-actions" style="margin-top:auto;display:flex;flex-direction:column;gap:var(--space-2);">
+        <button id="modal-download-btn" class="btn btn-primary"><i data-lucide="download"></i> Download Original</button>
+        <button id="modal-copy-path-btn" class="btn btn-secondary"><i data-lucide="copy"></i> Copy File Path</button>
+        <button id="modal-add-collection-btn" class="btn btn-secondary"><i data-lucide="folder-plus"></i> Add to Collection</button>
+      </div>
+    </div>
+  </div>
 </div>
 
-<!-- ═══════════════════════════════════════════════════════════════════════════ -->
-<!-- Selection Bar (fixed bottom)                                                 -->
-<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<div id="collection-picker-modal" class="modal-overlay" style="display:none;">
+  <div class="modal" style="width:460px;max-height:85vh;display:flex;flex-direction:column;padding:0;overflow:hidden;">
+    <button class="modal-close" data-modal-close="collection-picker-modal" aria-label="Close">
+      <i data-lucide="x"></i>
+    </button>
+    <div class="modal-header">
+      <h2 class="font-poppins" style="font-size:var(--text-xl);font-weight:600;">Add to Collection</h2>
+      <p id="collection-picker-subtitle" class="text-secondary" style="font-size:var(--text-sm);margin-top:var(--space-1);">Select a collection.</p>
+    </div>
+    <div id="collection-picker-list" style="padding:var(--space-2) var(--space-4);overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:var(--space-2);min-height:160px;"></div>
+    <div class="modal-footer" style="display:flex;justify-content:space-between;align-items:center;padding:var(--space-4) var(--space-6);border-top:1px solid var(--border-default);">
+      <button id="collection-picker-create-new" class="btn btn-secondary btn-sm">
+        <i data-lucide="plus"></i> New Collection
+      </button>
+      <button class="btn btn-ghost" data-modal-close="collection-picker-modal">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div id="batch-tag-modal" class="modal-overlay" style="display:none;">
+  <div class="modal" style="width:480px;">
+    <button class="modal-close" data-modal-close="batch-tag-modal" aria-label="Close">
+      <i data-lucide="x"></i>
+    </button>
+    <div class="modal-header">
+      <h2 class="font-poppins" style="font-size:var(--text-xl);font-weight:600;">Batch Tag</h2>
+      <p class="text-secondary" style="font-size:var(--text-sm);margin-top:var(--space-1);">Apply tags to all selected files.</p>
+    </div>
+    <div class="modal-body" style="padding:var(--space-6);">
+      <label class="form-label">Tags to apply</label>
+      <div id="batch-tag-input-container"></div>
+      <p class="text-tertiary" style="font-size:var(--text-xs);margin-top:var(--space-2);">Press Enter or comma to add a tag. Existing tags on files will not be removed.</p>
+    </div>
+    <div class="modal-footer" style="display:flex;justify-content:flex-end;gap:var(--space-3);padding:var(--space-4) var(--space-6);border-top:1px solid var(--border-default);">
+      <button class="btn btn-secondary" data-modal-close="batch-tag-modal">Cancel</button>
+      <button class="btn btn-primary" data-batch-apply>
+        <i data-lucide="tag"></i> Apply Tags
+      </button>
+    </div>
+  </div>
+</div>
+
+<div id="batch-tag-remove-modal" class="modal-overlay" style="display:none;">
+  <div class="modal" style="width:480px;">
+    <button class="modal-close" data-modal-close="batch-tag-remove-modal" aria-label="Close">
+      <i data-lucide="x"></i>
+    </button>
+    <div class="modal-header">
+      <h2 class="font-poppins" style="font-size:var(--text-xl);font-weight:600;">Remove Tags</h2>
+      <p class="text-secondary" style="font-size:var(--text-sm);margin-top:var(--space-1);">Remove tags from all selected files.</p>
+    </div>
+    <div class="modal-body" style="padding:var(--space-6);">
+      <label class="form-label">Tags to remove</label>
+      <div id="batch-tag-remove-input-container"></div>
+      <p class="text-tertiary" style="font-size:var(--text-xs);margin-top:var(--space-2);">Only these tags will be removed. Other tags on files are kept.</p>
+    </div>
+    <div class="modal-footer" style="display:flex;justify-content:flex-end;gap:var(--space-3);padding:var(--space-4) var(--space-6);border-top:1px solid var(--border-default);">
+      <button class="btn btn-secondary" data-modal-close="batch-tag-remove-modal">Cancel</button>
+      <button class="btn btn-error" data-batch-remove-apply>
+        <i data-lucide="tag-off"></i> Remove Tags
+      </button>
+    </div>
+  </div>
+</div>
+
 <div id="selection-bar" class="selection-bar">
-    <div style="display: flex; align-items: center; gap: var(--space-3);">
-        <button id="sel-clear" class="btn btn-icon" style="color: inherit; background: rgba(0,0,0,0.15);" aria-label="Clear selection">
-            <i data-lucide="x"></i>
-        </button>
-        <span id="sel-count" class="font-poppins" style="font-weight: 600; font-size: var(--text-base);">0 items selected</span>
-    </div>
-    
-    <div style="width: 1px; height: 24px; background: rgba(0,0,0,0.2);"></div>
-    
-    <div style="display: flex; gap: var(--space-2);">
-        <button id="sel-batch-tag" class="btn" style="background: rgba(0,0,0,0.15); color: inherit; border-color: transparent;">
-            <i data-lucide="tag"></i> Batch Tag
-        </button>
-        <button id="sel-batch-collection" class="btn" style="background: rgba(0,0,0,0.15); color: inherit; border-color: transparent;">
-            <i data-lucide="folder-plus"></i> Add to Collection
-        </button>
-        <button id="sel-download" class="btn" style="background: rgba(0,0,0,0.15); color: inherit; border-color: transparent;">
-            <i data-lucide="download"></i> Download
-        </button>
-    </div>
+  <div style="display:flex;align-items:center;gap:var(--space-3);">
+    <button id="sel-clear" class="btn btn-icon" style="color:inherit;background:rgba(0,0,0,0.15);" aria-label="Clear selection">
+      <i data-lucide="x"></i>
+    </button>
+    <span id="sel-count" class="font-poppins" style="font-weight:600;font-size:var(--text-base);">0 items selected</span>
+  </div>
+  <div style="width:1px;height:24px;background:rgba(0,0,0,0.2);"></div>
+  <div style="display:flex;gap:var(--space-2);">
+    <button id="sel-batch-tag" class="btn" style="background:rgba(0,0,0,0.15);color:inherit;border-color:transparent;">
+      <i data-lucide="tag"></i> Batch Tag
+    </button>
+    <button id="sel-batch-remove-tag" class="btn" style="background:rgba(0,0,0,0.15);color:inherit;border-color:transparent;">
+      <i data-lucide="tag-off"></i> Remove Tags
+    </button>
+    <button id="sel-batch-collection" class="btn" style="background:rgba(0,0,0,0.15);color:inherit;border-color:transparent;">
+      <i data-lucide="folder-plus"></i> Add to Collection
+    </button>
+    <button id="sel-download" class="btn" style="background:rgba(0,0,0,0.15);color:inherit;border-color:transparent;">
+      <i data-lucide="download"></i> Download
+    </button>
+  </div>
 </div>
-
 {% endblock %}
 
 {% block scripts %}
 <script src="{{ url_for('static', filename='js/components/modal.js') }}"></script>
 <script src="{{ url_for('static', filename='js/components/toast.js') }}"></script>
 <script src="{{ url_for('static', filename='js/components/tag-input.js') }}"></script>
-<script src="{{ url_for('static', filename='js/pages/search.js') }}"></script>
+<script src="{{ url_for('static', filename='js/pages/search.v2.js') }}"></script>
 {% endblock %}

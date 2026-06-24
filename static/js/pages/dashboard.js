@@ -59,4 +59,111 @@ document.addEventListener('DOMContentLoaded', async () => {
     s = Math.round(s);
     return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
   }
+
+  // ── Scanner Logic ────────────────────────────────────────────────────────
+  const pathInput = document.getElementById('library-path-input');
+  const btnSave   = document.getElementById('btn-save-path');
+  const btnScan   = document.getElementById('btn-rescan');
+  const statusIcon = document.getElementById('scan-status-icon');
+  const resultMsg = document.getElementById('scan-result-msg');
+
+  if (pathInput && btnScan) {
+    // 1. Load current config
+    try {
+      const cRes = await fetch('/api/config');
+      const config = await cRes.json();
+      if (config.library_path) {
+        pathInput.value = config.library_path;
+      }
+      if (config.last_scan) {
+        showResult(`Last scan: ${new Date(config.last_scan).toLocaleString()}`, 'text-tertiary');
+      }
+    } catch (e) { console.error("Failed to load config", e); }
+
+    // 2. Save Path
+    btnSave.addEventListener('click', async () => {
+      const path = pathInput.value.trim();
+      if (!path) return;
+      
+      btnSave.disabled = true;
+      try {
+        await fetch('/api/config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ library_path: path })
+        });
+        Toast.success('Path saved');
+      } catch (e) {
+        Toast.error('Failed to save path');
+      } finally {
+        btnSave.disabled = false;
+      }
+    });
+
+    // 3. Trigger Scan
+    btnScan.addEventListener('click', async () => {
+      const path = pathInput.value.trim();
+      if (!path) {
+        Toast.warning('Please enter at least one directory path first');
+        return;
+      }
+
+      setScanning(true);
+      showResult("Scanning configured directories... This may take a minute.", "text-accent");
+
+      try {
+        const sRes = await fetch('/api/scan', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ path })
+        });
+        const report = await sRes.json();
+
+        if (report.error) {
+          showResult(`Error: ${report.error}`, "text-error");
+          Toast.error(report.error);
+        } else {
+          const scannedCount = (report.scanned_paths || []).length;
+          const invalidCount = (report.invalid_paths || []).length;
+          let msg = `Scan complete across ${scannedCount} path(s). Found: ${report.found}, New: ${report.new}, Updated: ${report.updated}.`;
+          if (invalidCount > 0) {
+            msg += ` Skipped ${invalidCount} invalid path(s).`;
+          }
+          showResult(msg, "text-success");
+          Toast.success('Scan completed');
+          
+          // Refresh stats/grid after short delay
+          setTimeout(() => window.location.reload(), 2000);
+        }
+      } catch (e) {
+        showResult("Scanning failed. Check server logs.", "text-error");
+        Toast.error('Scan failed');
+      } finally {
+        setScanning(false);
+      }
+    });
+  }
+
+  function setScanning(active) {
+    btnScan.disabled = active;
+    const progressContainer = document.getElementById('scan-progress-container');
+    if (active) {
+      statusIcon.classList.add('animate-spin');
+      statusIcon.style.color = 'var(--color-accent)';
+      btnScan.innerHTML = '<i data-lucide="loader" class="animate-spin" style="width:16px;height:16px;"></i> <span>Scanning...</span>';
+      if(progressContainer) progressContainer.classList.remove('hidden');
+    } else {
+      statusIcon.classList.remove('animate-spin');
+      statusIcon.style.color = 'var(--text-tertiary)';
+      btnScan.innerHTML = '<i data-lucide="search" style="width:16px;height:16px;"></i> <span>Start Rescan</span>';
+      if(progressContainer) progressContainer.classList.add('hidden');
+    }
+    if (window.lucide) lucide.createIcons({ nodes: [btnScan] });
+  }
+
+  function showResult(text, className) {
+    resultMsg.innerHTML = text;
+    resultMsg.className = `text-xs mt-3 ${className}`;
+    resultMsg.style.display = 'block';
+  }
 });

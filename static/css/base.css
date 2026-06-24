@@ -23,6 +23,7 @@ html {
 
 body {
   font-family: var(--font-body);
+  font-feature-settings: "cv01", "cv05", "cv09", "cv11", "ss03", "ss07";
   font-size: var(--text-base);
   font-weight: 400;
   line-height: 1.5;
@@ -36,27 +37,30 @@ body {
 /* ── Typography ── */
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-heading);
-  font-weight: 600;
-  line-height: 1.3;
+  font-weight: 500; /* GT Walsheim Medium is weight 500 */
+  line-height: 1.1;
   color: var(--text-primary);
 }
 
 h1 {
   font-size: var(--text-3xl);
-  font-weight: 700;
-  line-height: 1.2;
+  line-height: 0.95;
+  letter-spacing: -2px;
 }
 
 h2 {
   font-size: var(--text-2xl);
+  letter-spacing: -1.5px;
 }
 
 h3 {
   font-size: var(--text-xl);
+  letter-spacing: -1px;
 }
 
 h4 {
   font-size: var(--text-lg);
+  letter-spacing: -0.8px;
 }
 
 p {
@@ -194,6 +198,7 @@ ul, ol {
 
 /* Visibility */
 .hidden { display: none !important; }
+[hidden] { display: none !important; }
 .invisible { visibility: hidden; }
 
 /* Flex helpers */
@@ -214,3 +219,35 @@ ul, ol {
 .p-3 { padding: var(--space-3); }
 .p-4 { padding: var(--space-4); }
 .p-6 { padding: var(--space-6); }
+
+/* Animations */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes progress-indeterminate {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(200%); }
+}
+
+.progress-bar-indeterminate {
+  position: relative;
+  overflow: hidden;
+  height: 4px;
+  background: var(--bg-elevated);
+  border-radius: 2px;
+}
+
+.progress-bar-indeterminate::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; bottom: 0;
+  width: 50%;
+  background: var(--color-accent);
+  border-radius: 2px;
+  animation: progress-indeterminate 1.5s ease-in-out infinite;
+}

@@ -4,18 +4,27 @@ Flask application: page routes + JSON API
 """
 
 import os
-import mimetypes
+import re
 from pathlib import Path
 from flask import (
     Flask, render_template, jsonify, request,
-    abort, send_file, Response, send_from_directory
+    abort, send_file, Response
 )
 import io
 import zipfile
+from PIL import Image, ImageOps, UnidentifiedImageError
+try:
+    import imageio.v2 as imageio
+except ImportError:  # pragma: no cover
+    imageio = None
 from catalog import get_catalog
 
 app = Flask(__name__)
 app.config["JSON_SORT_KEYS"] = False
+
+THUMB_CACHE_DIR = Path(os.environ.get("THUMB_CACHE_DIR", ".tmp/thumb-cache"))
+THUMB_MAX_SIZE = (1600, 1600)
+VIDEO_EXTENSIONS = {"mp4", "mov", "avi", "mkv", "mxf", "r3d", "braw"}
 
 # ── Jinja Filters ──────────────────────────────────────────────────────────
 @app.template_filter('format_number')
@@ -98,6 +107,8 @@ def api_search():
     date_from = request.args.get("date_from")
     date_to   = request.args.get("date_to")
     folder    = request.args.get("folder")
+    folder_prefix = request.args.get("folder_prefix")
+    saved_search_id = request.args.get("saved_search_id")
 
     try:
         page     = max(1, int(request.args.get("page", 1)))
@@ -109,9 +120,61 @@ def api_search():
         query=q, file_type=file_type, sort=sort,
         page=page, per_page=per_page,
         year=year, date_from=date_from, date_to=date_to,
-        folder=folder,
+        folder=folder, folder_prefix=folder_prefix,
     )
+    if saved_search_id:
+        try:
+            catalog.log_saved_search_apply(int(saved_search_id))
+        except ValueError:
+            pass
     return jsonify(result)
+
+@app.route("/api/folders")
+def api_folders():
+    return jsonify({"folders": catalog.get_folder_tree()})
+
+@app.route("/api/saved-searches", methods=["GET"])
+def api_get_saved_searches():
+    return jsonify({"saved_searches": catalog.get_saved_searches()})
+
+@app.route("/api/saved-searches", methods=["POST"])
+def api_create_saved_search():
+    data = request.get_json(force=True) or {}
+    try:
+        saved_search = catalog.create_saved_search(data)
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 400
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 409
+    return jsonify(saved_search), 201
+
+@app.route("/api/saved-searches/<int:saved_id>", methods=["GET"])
+def api_get_saved_search(saved_id):
+    saved_search = catalog.get_saved_search(saved_id)
+    if not saved_search:
+        abort(404, description="Saved search not found")
+    return jsonify(saved_search)
+
+@app.route("/api/saved-searches/<int:saved_id>", methods=["PATCH"])
+def api_update_saved_search(saved_id):
+    data = request.get_json(force=True) or {}
+    try:
+        saved_search = catalog.update_saved_search(saved_id, data)
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 400
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 409
+    if not saved_search:
+        abort(404, description="Saved search not found")
+    return jsonify(saved_search)
+
+@app.route("/api/saved-searches/<int:saved_id>", methods=["DELETE"])
+def api_delete_saved_search(saved_id):
+    existing = catalog.get_saved_search(saved_id)
+    if not existing:
+        abort(404, description="Saved search not found")
+    catalog.delete_saved_search(saved_id)
+    return jsonify({"ok": True})
 
 # ═══════════════════════════════════════════════════════════════════════════
 #  API — Files
@@ -164,6 +227,22 @@ def api_batch_tag():
     result = catalog.batch_add_tags(file_ids, tags)
     return jsonify(result)
 
+@app.route("/api/batch/tags/remove", methods=["POST"])
+def api_batch_tag_remove():
+    """
+    POST /api/batch/tags/remove
+    Body: { "file_ids": [...], "tags": [...] }
+    """
+    data     = request.get_json(force=True) or {}
+    file_ids = data.get("file_ids", [])
+    tags     = data.get("tags", [])
+
+    if not file_ids or not tags:
+        return jsonify({"error": "file_ids and tags are required"}), 400
+
+    result = catalog.batch_remove_tags(file_ids, tags)
+    return jsonify(result)
+
 # ═══════════════════════════════════════════════════════════════════════════
 #  API — Tag Vocabulary
 # ═══════════════════════════════════════════════════════════════════════════
@@ -192,10 +271,30 @@ def api_get_tags():
 
     return jsonify({"tags": tags})
 
+@app.route("/api/tags", methods=["POST"])
+def api_create_tag():
+    data = request.get_json(force=True) or {}
+    tag = (data.get("tag") or "").strip()
+    category = (data.get("category") or "custom").strip()
+
+    if not tag:
+        return jsonify({"error": "tag is required"}), 400
+
+    result = catalog.create_tag_vocabulary(tag, category)
+    if not result.get("ok"):
+        return jsonify({"error": result.get("error", "Failed to create tag")}), 400
+
+    status_code = 201 if result.get("created") else 200
+    return jsonify(result), status_code
+
 @app.route("/api/tags/categories")
 def api_tag_categories():
     cats = catalog.get_tag_categories()
     return jsonify({"categories": cats})
+
+@app.route("/api/tags/analytics")
+def api_tag_analytics():
+    return jsonify(catalog.get_tag_analytics())
 
 @app.route("/api/tags/<tag>", methods=["DELETE"])
 def api_delete_tag(tag):
@@ -249,7 +348,8 @@ def api_collection_items(col_id):
         per_page = min(200, int(request.args.get("per_page", 50)))
     except ValueError:
         page, per_page = 1, 50
-    return jsonify(catalog.get_collection_files(col_id, page, per_page))
+    sort = request.args.get("sort", "newest")
+    return jsonify(catalog.get_collection_files(col_id, page, per_page, sort=sort))
 
 @app.route("/api/collections/<int:col_id>/items", methods=["POST"])
 def api_add_to_collection(col_id):
@@ -269,6 +369,19 @@ def api_remove_from_collection(col_id, file_id):
 #  API — Downloads
 # ═══════════════════════════════════════════════════════════════════════════
 
+@app.route("/api/file/<file_id>/raw")
+def api_serve_file(file_id):
+    """Serve file inline (for video playback and preview)."""
+    f = catalog.get_file(file_id)
+    if not f:
+        abort(404, description="File not found")
+    
+    path = Path(f["path"])
+    if not path.exists():
+        abort(404, description="File missing from disk")
+    
+    return send_file(path, as_attachment=False, conditional=True, max_age=86400)
+
 @app.route("/api/download/<file_id>")
 def api_download(file_id):
     f = catalog.get_file(file_id)
@@ -279,7 +392,10 @@ def api_download(file_id):
     if not path.exists():
         # Fallback to stub for prototype mode if file is missing from disk
         return jsonify({"error": f"File missing from disk: {path}"}), 404
-        
+    catalog.log_event("download_single", {
+        "file_id": file_id,
+        "filename": path.name,
+    })
     return send_file(path, as_attachment=True, download_name=path.name)
 
 @app.route("/api/batch/download", methods=["POST"])
@@ -289,27 +405,57 @@ def api_batch_download():
     if not file_ids:
         return jsonify({"error": "file_ids required"}), 400
         
-    files = [catalog.get_file(fid) for fid in file_ids]
-    files = [f for f in files if f and Path(f["path"]).exists()]
-    
-    if not files:
-        return jsonify({"error": "No valid files found for download"}), 404
-        
-    # In a real app, this should be an async job. For the prototype, build ZIP in memory.
+    requested_files = [catalog.get_file(fid) for fid in file_ids]
+    available_files = []
+    missing_files = []
+    for file_record in requested_files:
+        if not file_record:
+            continue
+        path = Path(file_record["path"])
+        if path.exists():
+            available_files.append(file_record)
+        else:
+            missing_files.append(file_record)
+
+    if not available_files:
+        return jsonify({
+            "error": "No valid files found for download",
+            "requested": len(file_ids),
+            "missing": len(missing_files),
+        }), 404
+
     memory_file = io.BytesIO()
     with zipfile.ZipFile(memory_file, 'w', zipfile.ZIP_DEFLATED) as zf:
-        for f in files:
+        for f in available_files:
             p = Path(f["path"])
-            # In a real app, handle name collisions inside the ZIP
             zf.write(p, p.name)
-            
+        if missing_files:
+            manifest_lines = [
+                "Some requested files were unavailable and were not included in this archive.",
+                "",
+            ]
+            manifest_lines.extend(
+                f"- {item.get('filename', item.get('id'))}: {item.get('path', '')}"
+                for item in missing_files
+            )
+            zf.writestr("missing-files.txt", "\n".join(manifest_lines))
+
     memory_file.seek(0)
-    return send_file(
+    response = send_file(
         memory_file,
         mimetype="application/zip",
         as_attachment=True,
         download_name="1011_Media_Batch.zip"
     )
+    response.headers["X-Archive-Requested"] = str(len(file_ids))
+    response.headers["X-Archive-Included"] = str(len(available_files))
+    response.headers["X-Archive-Missing"] = str(len(missing_files))
+    catalog.log_event("download_batch", {
+        "requested_file_count": len(file_ids),
+        "included_file_count": len(available_files),
+        "missing_file_count": len(missing_files),
+    })
+    return response
 
 # ═══════════════════════════════════════════════════════════════════════════
 #  API — Stats & Activity
@@ -328,8 +474,146 @@ def api_activity():
     return jsonify({"activity": catalog.get_activity_log(limit)})
 
 # ═══════════════════════════════════════════════════════════════════════════
+#  API — Configuration & Maintenance
+# ═══════════════════════════════════════════════════════════════════════════
+
+@app.route("/api/config", methods=["GET"])
+def api_get_config():
+    return jsonify(catalog.get_config())
+
+@app.route("/api/config", methods=["POST"])
+def api_update_config():
+    data = request.get_json(force=True) or {}
+    for key, value in data.items():
+        catalog.update_config(key, value)
+    return jsonify({"ok": True})
+
+@app.route("/api/scan", methods=["POST"])
+def api_scan():
+    """
+    Trigger a directory scan.
+    Body: { "path": "z:/path/to/media;\\\\server\\share\\media" }
+    """
+    data = request.get_json(force=True) or {}
+    path = data.get("path")
+    
+    if not path:
+        # Try to get from config
+        config = catalog.get_config()
+        path = config.get("library_path")
+
+    if not path:
+        return jsonify({"error": "No scan path provided or configured"}), 400
+
+    # For safety/simplicity in this prototype, we block while scanning.
+    # In a real app, this should be a background task (e.g. Celery).
+    results = catalog.scan_directories(path)
+    
+    if "error" in results:
+        return jsonify(results), 400
+        
+    return jsonify(results)
+
+# ═══════════════════════════════════════════════════════════════════════════
 #  API — Thumbnail stub (serves icon until Phase 3 indexer)
 # ═══════════════════════════════════════════════════════════════════════════
+
+def _placeholder_thumbnail_svg(ext: str) -> str:
+    ext = (ext or "jpg").lower()
+    if ext in VIDEO_EXTENSIONS:
+        color = "#06B6D4"
+    elif ext in {"psd", "psb", "ai", "eps"}:
+        color = "#A855F7"
+    else:
+        color = "#6366F1"
+
+    return f"""<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300"
+      viewBox="0 0 400 300" style="background:#18181b;">
+  <rect width="400" height="300" fill="#18181b"/>
+  <rect x="1" y="1" width="398" height="298" fill="none" stroke="#3f3f46" stroke-width="1"/>
+  <text x="200" y="130" font-family="sans-serif" font-size="64"
+        text-anchor="middle" fill="{color}" opacity="0.3">&#9670;</text>
+  <text x="200" y="175" font-family="monospace" font-size="13"
+        text-anchor="middle" fill="#52525b">{ext.upper()}</text>
+</svg>"""
+
+
+def _safe_thumb_stem(file_id: str) -> str:
+    return re.sub(r"[^A-Za-z0-9_-]+", "-", file_id).strip("-") or "thumb"
+
+
+def _build_thumb_cache_path(file_id: str, source_path: Path) -> Path:
+    stat = source_path.stat()
+    THUMB_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    stem = _safe_thumb_stem(file_id)
+    return THUMB_CACHE_DIR / f"{stem}-{stat.st_mtime_ns}-{stat.st_size}.jpg"
+
+
+def _render_pil_thumbnail(source_path: Path, thumb_path: Path) -> Path | None:
+    try:
+        with Image.open(source_path) as img:
+            img = ImageOps.exif_transpose(img)
+            if getattr(img, "n_frames", 1) > 1:
+                img.seek(0)
+
+            if img.mode in ("RGBA", "LA") or (img.mode == "P" and "transparency" in img.info):
+                rgba = img.convert("RGBA")
+                background = Image.new("RGBA", rgba.size, "#18181B")
+                img = Image.alpha_composite(background, rgba).convert("RGB")
+            elif img.mode != "RGB":
+                img = img.convert("RGB")
+
+            img.thumbnail(THUMB_MAX_SIZE, Image.Resampling.LANCZOS)
+            img.save(thumb_path, format="JPEG", quality=88, optimize=True)
+        return thumb_path
+    except (UnidentifiedImageError, OSError, ValueError):
+        return None
+
+
+def _get_thumbnail_path(file_record: dict) -> Path | None:
+    source_path = Path(file_record["path"])
+    if not source_path.exists():
+        return None
+
+    ext = (file_record.get("ext") or source_path.suffix.lstrip(".")).lower()
+    thumb_path = _build_thumb_cache_path(file_record["id"], source_path)
+    if thumb_path.exists():
+        return thumb_path
+
+    stale_pattern = f"{_safe_thumb_stem(file_record['id'])}-*.jpg"
+    for stale_path in THUMB_CACHE_DIR.glob(stale_pattern):
+        if stale_path != thumb_path:
+            stale_path.unlink(missing_ok=True)
+
+    if ext in VIDEO_EXTENSIONS:
+        return _render_video_thumbnail(source_path, thumb_path)
+
+    return _render_pil_thumbnail(source_path, thumb_path)
+
+
+def _render_video_thumbnail(source_path: Path, thumb_path: Path) -> Path | None:
+    if imageio is None:
+        return None
+
+    try:
+        with imageio.get_reader(str(source_path), format="ffmpeg") as reader:
+            try:
+                frame = reader.get_data(0)
+            except Exception:
+                frame = next(iter(reader), None)
+
+        if frame is None:
+            return None
+
+        img = Image.fromarray(frame)
+        if img.mode != "RGB":
+            img = img.convert("RGB")
+        img.thumbnail(THUMB_MAX_SIZE, Image.Resampling.LANCZOS)
+        img.save(thumb_path, format="JPEG", quality=88, optimize=True)
+        return thumb_path
+    except Exception:
+        return None
+
 
 @app.route("/api/thumb/<file_id>")
 def api_thumbnail(file_id):
@@ -338,27 +622,25 @@ def api_thumbnail(file_id):
     generates real JPEG thumbs in Phase 3.
     """
     f = catalog.get_file(file_id)
-    ext = (f.get("ext", "jpg") if f else "jpg").lower()
+    if not f:
+        abort(404, description="File not found")
 
-    if ext in ("mp4", "mov", "avi", "mkv", "mxf"):
-        icon, color = "video", "#06B6D4"
-    elif ext in ("psd", "psb", "ai"):
-        icon, color = "layers", "#A855F7"
-    else:
-        icon, color = "image", "#6366F1"
+    thumb_path = _get_thumbnail_path(f)
+    if thumb_path and thumb_path.exists():
+        return send_file(
+            thumb_path,
+            mimetype="image/jpeg",
+            conditional=True,
+            max_age=86400,
+        )
 
-    svg = f"""<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300"
-      viewBox="0 0 400 300" style="background:#18181b;">
-  <rect width="400" height="300" fill="#18181b"/>
-  <rect x="1" y="1" width="398" height="298" fill="none" stroke="#3f3f46" stroke-width="1"/>
-  <text x="200" y="130" font-family="sans-serif" font-size="64"
-        text-anchor="middle" fill="{color}" opacity="0.3">◼</text>
-  <text x="200" y="175" font-family="monospace" font-size="13"
-        text-anchor="middle" fill="#52525b">{ext.upper()}</text>
-</svg>"""
-
-    return Response(svg, mimetype="image/svg+xml",
-                    headers={"Cache-Control": "public, max-age=86400"})
+    ext = (f.get("ext", "jpg")).lower()
+    svg = _placeholder_thumbnail_svg(ext)
+    return Response(
+        svg,
+        mimetype="image/svg+xml",
+        headers={"Cache-Control": "public, max-age=86400"},
+    )
 
 # ═══════════════════════════════════════════════════════════════════════════
 #  Error handlers

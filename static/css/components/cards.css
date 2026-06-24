@@ -1,7 +1,8 @@
 /* ── Asset Card ── */
 .asset-card {
   background: var(--bg-surface);
-  border: 1px solid var(--border-default);
+  border: 1px solid transparent;
+  box-shadow: var(--shadow-1); /* Blue ring border */
   border-radius: var(--radius-card);
   overflow: hidden;
   cursor: pointer;
@@ -11,8 +12,7 @@
 
 .asset-card:hover {
   transform: translateY(-2px);
-  box-shadow: var(--shadow-2);
-  border-color: var(--border-subtle);
+  box-shadow: var(--shadow-3); /* Floating shadow */
 }
 
 .asset-card.selected {
@@ -126,7 +126,8 @@
 /* ── Collection Card ── */
 .collection-card {
   background: var(--bg-surface);
-  border: 1px solid var(--border-default);
+  border: 1px solid transparent;
+  box-shadow: var(--shadow-1); /* Blue ring border */
   border-radius: var(--radius-card);
   overflow: hidden;
   cursor: pointer;
@@ -135,8 +136,7 @@
 
 .collection-card:hover {
   transform: translateY(-2px);
-  box-shadow: var(--shadow-2);
-  border-color: var(--border-subtle);
+  box-shadow: var(--shadow-3); /* Floating shadow */
 }
 
 .collection-card-cover {

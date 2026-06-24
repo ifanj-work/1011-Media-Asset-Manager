@@ -14,6 +14,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const addTagModal   = document.getElementById('add-tag-modal');
   const mergeTagModal = document.getElementById('merge-tag-modal');
   const countDisplay  = document.getElementById('tag-count-display');
+  const analyticsMostUsed = document.getElementById('tag-analytics-most-used');
+  const analyticsUnused = document.getElementById('tag-analytics-unused');
 
   if (!tableBody) return;
 
@@ -55,8 +57,32 @@ document.addEventListener('DOMContentLoaded', () => {
       state.allTags = data.tags;
       renderTagTable(data.tags);
       updateCategoryCounts();
+      loadTagAnalytics();
     } catch (e) {
       Toast.error('Failed to load tags from server.');
+    }
+  }
+
+  async function loadTagAnalytics() {
+    if (!analyticsMostUsed || !analyticsUnused) return;
+    try {
+      const data = await apiFetch('/api/tags/analytics');
+      analyticsMostUsed.innerHTML = (data.most_used || []).slice(0, 5).map(tag => `
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:var(--space-2);">
+          <span class="tag tag-${escHtml(tag.category)}">${escHtml(tag.tag)}</span>
+          <span class="text-tertiary" style="font-size:var(--text-xs);">${Number(tag.count || 0).toLocaleString()}</span>
+        </div>
+      `).join('') || '<p class="text-tertiary" style="font-size:var(--text-sm);">No tag usage yet.</p>';
+
+      analyticsUnused.innerHTML = (data.unused || []).slice(0, 5).map(tag => `
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:var(--space-2);">
+          <span class="tag tag-${escHtml(tag.category)}">${escHtml(tag.tag)}</span>
+          <span class="text-tertiary" style="font-size:var(--text-xs);">unused</span>
+        </div>
+      `).join('') || '<p class="text-tertiary" style="font-size:var(--text-sm);">No unused vocabulary tags.</p>';
+    } catch (_) {
+      analyticsMostUsed.innerHTML = '<p class="text-tertiary" style="font-size:var(--text-sm);">Could not load analytics.</p>';
+      analyticsUnused.innerHTML = '<p class="text-tertiary" style="font-size:var(--text-sm);">Could not load analytics.</p>';
     }
   }
 
@@ -175,15 +201,8 @@ document.addEventListener('DOMContentLoaded', () => {
     row.style.opacity = '0';
     try {
       const res = await apiDelete(`/api/tags/${encodeURIComponent(tag)}`);
-      setTimeout(() => {
-        row.remove();
-        state.allTags = state.allTags.filter(t => t.tag !== tag);
-        updateCount(
-          tableBody.querySelectorAll('tr[data-tag]').length,
-          state.allTags.length
-        );
-      }, 200);
       Toast.success(`Tag "${tag}" deleted — ${res.files_affected} file(s) updated`);
+      setTimeout(() => { loadTags(); }, 200);
     } catch (e) {
       row.style.opacity = '1';
       Toast.error(`Could not delete tag "${tag}"`);
@@ -234,16 +253,24 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!name) { Toast.warning('Enter a tag name.'); return; }
 
         saveBtn.disabled = true;
-        // Adding a tag to the vocabulary without a file — we'll wire to
-        // a "create vocab tag" endpoint in Phase 3. For now, show success.
-        // (The tag will appear in suggestions once any file uses it.)
-        Toast.success(`Tag "${name}" added to vocabulary`);
-        if (tagNameInput) tagNameInput.value = '';
-        ModalManager.close('add-tag-modal');
-        saveBtn.disabled = false;
-        // Optimistically add to local state
-        state.allTags.unshift({ tag: name, category, count: 0 });
-        renderTagTable(state.allTags);
+        saveBtn.textContent = 'Saving...';
+        try {
+          const res = await apiPost('/api/tags', { tag: name, category });
+          Toast.success(
+            res.created
+              ? `Tag "${name}" added to vocabulary`
+              : `Tag "${name}" already exists in the vocabulary`
+          );
+          if (tagNameInput) tagNameInput.value = '';
+          ModalManager.close('add-tag-modal');
+          await loadTags();
+        } catch (e) {
+          Toast.error('Could not create tag. Please try again.');
+        } finally {
+          saveBtn.disabled = false;
+          saveBtn.innerHTML = '<i data-lucide="plus"></i> Create Tag';
+          if (window.lucide) lucide.createIcons({ nodes: [saveBtn] });
+        }
       });
     }
   }
@@ -271,12 +298,13 @@ document.addEventListener('DOMContentLoaded', () => {
           if (sourceIn) sourceIn.value = '';
           if (targetIn) targetIn.value = '';
           ModalManager.close('merge-tag-modal');
-          loadTags();
+          await loadTags();
         } catch (e) {
           Toast.error('Merge failed. Please try again.');
         } finally {
           confirmBtn.disabled = false;
-          confirmBtn.textContent = 'Confirm Merge';
+          confirmBtn.innerHTML = '<i data-lucide="merge"></i> Confirm Merge';
+          if (window.lucide) lucide.createIcons({ nodes: [confirmBtn] });
         }
       });
     }
